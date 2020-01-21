@@ -3,8 +3,12 @@
 #include <unistd.h>
 #include <string.h>
 #include <sys/wait.h>
+#include <sys/time.h>
+#include <sys/resource.h>
 
 void execute(int command){
+	struct rusage usage;
+	struct timeval start,end;
 	printf("Running command: ");
 	if(command == 0) printf("whoami\n");
 	else if(command == 1) printf("last\n");
@@ -33,16 +37,26 @@ void execute(int command){
         		break;
 
         }
+        getrusage(RUSAGE_SELF,&usage);
+        gettimeofday(&start,NULL);
         execvp(myargs[0], myargs);
         printf("this shouldn't print out");
     } else {
         // int wc = wait(NULL);
         while(wait(NULL)!=rc);
+        getrusage(RUSAGE_SELF,&usage);
+        gettimeofday(&end, NULL);
+        printf("\n-- Statistics --\n");
+        printf("Elapsed time: %ldus\n", end.tv_usec - start.tv_usec);
+        printf("Page Faults: \n");
+        printf("Page Faults (reclaimed): \n");
+        printf("-- End of Statistics --\n\n");
     }
 }
 
 int main(int argc, char *argv[]){
 	int i;
+
 	for(i = 0; i < 3; i++) execute(i);
     return 0;
 }
