@@ -40,7 +40,6 @@ void execute(int command){
         getrusage(RUSAGE_SELF,&usage);
         gettimeofday(&start,NULL);
         execvp(myargs[0], myargs);
-        printf("this shouldn't print out");
     } else {
         // int wc = wait(NULL);
         while(wait(NULL)!=rc);
