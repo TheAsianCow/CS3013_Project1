@@ -12,21 +12,18 @@ long int faults[2] = {0,0};
 
 
 /*
- * Parses ???
+ * 
  */
-void  parse(char *line, char **argv){
-	/* if not the end of line ....... */ 
-     while (*line != '\0') {
-     
-     	/* replace white spaces with 0    */
-          while(*line == ' ' || *line == '\t' || *line == '\n') *line++ = '\0';
-          /* save the argument position     */
-          *argv++ = line;          
-          /* skip the argument until ...    */
-          while (*line != '\0' && *line != ' ' && *line != '\t' && *line != '\n') line++;             
+void parse(char* line, char** args){
+     const char s[2] = " ";
+     char* token = strtok(line, s);
+     int argc = 0;
+     while(token!=NULL){
+        args[argc] = strdup(token);
+        argc++;
+        token = strtok(NULL, s);
      }
-     /* mark the end of argument list  */
-     *argv = '\0';                 
+     for(int i = 0; i < argc; i++) printf("arg: %s\n",args[i]);
 }
 
 /*
@@ -46,10 +43,12 @@ void execute(char* command){
     } else if (rc == 0) {
         char *myargs[34];
         myargs[33] = NULL;
+        parse(command, myargs);
         getrusage(RUSAGE_SELF,&usage);
         //gettimeofday(&start,NULL);
+        printf("passing command: %send\n", myargs[0]);
         execvp(myargs[0], myargs);
-        printf("this shouldn't print out");
+        printf("this shouldn't print out\n");
     } else {
         // int wc = wait(NULL);
         while(wait(NULL)!=rc);
@@ -72,28 +71,27 @@ int main(int argc, char *argv[]) {
     size_t n = 0;
     printf("Hello this is Minh Anh being a CS major hehehehehheheh\n");
     
-	char* currentDir = "/home";
-	char* currentDir_ptr = currentDir;
+	// char* currentDir = "/home";
+	// char* currentDir_ptr = currentDir;
 
-	printDir(currentDir_ptr);
+	// printDir(currentDir_ptr);
 
-	char* tempDir= "/home/lu/Documents";
+	// char* tempDir= "/home/lu/Documents";
 
-	printf("Want to change to: %s\n", tempDir);
-	currentDir_ptr = tempDir;
-	changeDir(currentDir_ptr);
-	printDir(currentDir_ptr);
+	// printf("Want to change to: %s\n", tempDir);
+	// currentDir_ptr = tempDir;
+	// changeDir(currentDir_ptr);
+	// printDir(currentDir_ptr);
 
 
-	Parsing file
 	FILE* file = fopen(file_path,"r");
     size = getline(&line,&n,file);
     while(size >=0){
         // printf("Line read: %s\n",line);
-        // execute()
+        printf("executing line from file: %s\n",line);
+        execute(line);
         size = getline(&line,&n,file);
     }
-
 
     return 0;
 }
