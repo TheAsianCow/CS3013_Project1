@@ -46,6 +46,7 @@ void execute(int command){
         }
         getrusage(RUSAGE_SELF,&usage);
         //gettimeofday(&start,NULL);
+        // printf("passing command: %s\n",myargs[0]);
         execvp(myargs[0], myargs);
         printf("this shouldn't print out");
     } else {

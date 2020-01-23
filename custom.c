@@ -7,6 +7,7 @@
 #include <sys/resource.h>
 #include <getopt.h>
 #include "custom.h"
+// #include <libexplain/gcc_attributes.h>
 
 long int faults[2] = {0,0};
 
@@ -23,7 +24,8 @@ void parse(char* line, char** args){
         argc++;
         token = strtok(NULL, s);
      }
-     for(int i = 0; i < argc; i++) printf("arg: %s\n",args[i]);
+     args[argc] = NULL;
+     // for(int i = 0; i < argc; i++) printf("arg: %s\n",args[i]);
 }
 
 /*
@@ -34,7 +36,7 @@ void execute(char* command){
     struct timeval start,end;
 
     gettimeofday(&start,NULL);
-    printf("Running command: %s",command);
+    printf("Running command: %s\n",command);
     int rc = fork();
     if (rc < 0) {
         // fork failed; exit
@@ -46,9 +48,9 @@ void execute(char* command){
         parse(command, myargs);
         getrusage(RUSAGE_SELF,&usage);
         //gettimeofday(&start,NULL);
-        printf("passing command: %send\n", myargs[0]);
+        // printf("passing command: %s\n", myargs[0]);
         execvp(myargs[0], myargs);
-        printf("this shouldn't print out\n");
+        // fprintf(stderr,"execvp error: %s\n",explain_execvp(myargs[0], myargs));
     } else {
         // int wc = wait(NULL);
         while(wait(NULL)!=rc);
@@ -56,8 +58,8 @@ void execute(char* command){
         gettimeofday(&end, NULL);
         printf("\n-- Statistics --\n");
         printf("Elapsed time: %ld millisecond(s)\n", (end.tv_usec - start.tv_usec) / 1000);
-    faults[0] = usage.ru_majflt - faults[0];
-    faults[1] = usage.ru_minflt - faults[1];
+        faults[0] = usage.ru_majflt - faults[0];
+        faults[1] = usage.ru_minflt - faults[1];
         printf("Page Faults: %ld\n", faults[0]);
         printf("Page Faults (reclaimed): %ld \n", faults[1]);
         printf("-- End of Statistics --\n\n");
@@ -69,7 +71,6 @@ int main(int argc, char *argv[]) {
     char* line; 
     ssize_t size;
     size_t n = 0;
-    printf("Hello this is Minh Anh being a CS major hehehehehheheh\n");
     
 	// char* currentDir = "/home";
 	// char* currentDir_ptr = currentDir;
@@ -88,7 +89,8 @@ int main(int argc, char *argv[]) {
     size = getline(&line,&n,file);
     while(size >=0){
         // printf("Line read: %s\n",line);
-        printf("executing line from file: %s\n",line);
+        if(line[size-1]=='\n') line[size-1]='\0';
+        // printf("executing line from file: %s\n",line);
         execute(line);
         size = getline(&line,&n,file);
     }
