@@ -30,10 +30,59 @@ void changeDir(char* newDir) {
 void printCurrentDir() {
 	printf("\n");
 }
+long int faults[2] = {0,0};
 
+void  parse(char *line, char **argv){
+     while (*line != '\0') {       /* if not the end of line ....... */ 
+          while(*line == ' ' || *line == '\t' || *line == '\n') *line++ = '\0';     /* replace white spaces with 0    */
+          *argv++ = line;          /* save the argument position     */
+          while (*line != '\0' && *line != ' ' && *line != '\t' && *line != '\n') line++;             /* skip the argument until ...    */
+     }
+     *argv = '\0';                 /* mark the end of argument list  */
+}
+
+/*
+ * int* faults: [majFaults, minFaults]
+ */
+void execute(char* command){
+    struct rusage usage;
+    struct timeval start,end;
+
+    gettimeofday(&start,NULL);
+    printf("Running command: %s",command);
+    int rc = fork();
+    if (rc < 0) {
+        // fork failed; exit
+        fprintf(stderr, "fork failed\n");
+        exit(1);
+    } else if (rc == 0) {
+        char *myargs[34];
+        myargs[33] = NULL;
+        getrusage(RUSAGE_SELF,&usage);
+        //gettimeofday(&start,NULL);
+        execvp(myargs[0], myargs);
+        printf("this shouldn't print out");
+    } else {
+        // int wc = wait(NULL);
+        while(wait(NULL)!=rc);
+        getrusage(RUSAGE_SELF,&usage);
+        gettimeofday(&end, NULL);
+        printf("\n-- Statistics --\n");
+        printf("Elapsed time: %ld millisecond(s)\n", (end.tv_usec - start.tv_usec) / 1000);
+    faults[0] = usage.ru_majflt - faults[0];
+    faults[1] = usage.ru_minflt - faults[1];
+        printf("Page Faults: %ld\n", faults[0]);
+        printf("Page Faults (reclaimed): %ld \n", faults[1]);
+        printf("-- End of Statistics --\n\n");
+    }
+}
 
 int main(int argc, char *argv[]){
-	char c;
+	char* file_path = "custom.txt";
+    char* line; 
+    ssize_t size;
+    size_t n = 0;
+    
 	int help = 0;
 	char* trace_path;
 	char currentDir[LINE_MAX];
@@ -49,68 +98,13 @@ int main(int argc, char *argv[]){
 	changeDir(tempDir);
 	printf("New directory: %s\n", currentDir_ptr);
 
-	/* 
-	parse the file
-		update currentDir and currentDir_ptr
-	for each command:
-		call changeDir() with "actual" directory
-		if ccd call changeDir()
-		if cpwd call printCurrentDir()
-		else execvp(...)
-	*/
-
-	// while((c=getopt(argc,argv,"vhs:E:b:t:")) != -1){
- //        switch(c){
- //        case 'v':
- //            verb = 1;
- //            break;
- //        case 'h':
- //            help = 1;
- //            break;
- //        case 's':
- //            sets = atoi(optarg);
- //            if(sets==0){
- //            	printf("Invalid set size\n");
- //            	help = 1;
- //            }
- //            break;
- //        case 'E':
- //            ass = atoi(optarg);
- //            if(ass==0){
- //            	printf("Invalid associativity\n");
- //            	help = 1;
- //            }
- //            break;
- //        case 'b':
- //            block = atoi(optarg);
- //            if(block==0){
- //            	printf("Invalid block size\n");
- //            	help = 1;
- //            }
- //            break;
- //        case 't':
- //            trace_path = optarg;
- //            if(trace_path==NULL){
- //            	printf("Invalid path to trace file\n");
- //            	help = 1;
- //            }
- //            break;
- //        default:
- //            help = 1;
- //            printf("hit default\n");
- //            break;
- //        }
- //    }
- //    printf("retrieved args\n");
-	// if(help){
-	// 	printf("Usage: ./csim-ref [-hv] -s <s> -E <E> -b <b> -t <tracefile>\n");
-	// 	printf("-h: Optional help flag that prints usage info\n");
-	// 	printf("-v: Optional verbose flag that displays trace info \n");
-	// 	printf("-s <s>: Number of set index bits (the number of sets is 2s)\n");
-	// 	printf("-E <E>: Associativity (number of lines per set)\n");
-	// 	printf("-b <b>: Number of block bits (the block size is 2b)\n");
-	// 	printf("-t <tracefile>: Name of the valgrind trace to replay\n");
-	// 	exit(0);
-	// }
+	FILE* file = fopen(file_path,"r");
+    size = getline(&line,&n,file);
+    while(size >=0){
+        // printf("Line read: %s\n",line);
+        // execute()
+        size = getline(&line,&n,file);
+    }
+    
     return 0;
 }
