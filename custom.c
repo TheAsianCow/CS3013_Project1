@@ -8,37 +8,25 @@
 #include <getopt.h>
 #include "custom.h"
 
-/*
- * Changes the current directory for this current process
- * as well as for any children processes. Called when
- * "ccd" is parsed.
- */
-void changeDir(char* newDir) {
-	if (chdir(newDir) != 0) {
-		perror(("Error changing the directory to %s\n", newDir));
-
-	}
-	/*
-	save newDir as global or return or something idk
-	call changeDir again when new child born
-	*/
-}
-
-/*
- * Prints out the name of the current working directory.
- */
-void printCurrentDir() {
-	printf("\n");
-}
 long int faults[2] = {0,0};
 
+
+/*
+ * Parses ???
+ */
 void  parse(char *line, char **argv){
-     while (*line != '\0') {       /* if not the end of line ....... */ 
-          while(*line == ' ' || *line == '\t' || *line == '\n') *line++ = '\0';     /* replace white spaces with 0    */
-          *argv++ = line;          /* save the argument position     */
-          while (*line != '\0' && *line != ' ' && *line != '\t' && *line != '\n') line++;             /* skip the argument until ...    */
+	/* if not the end of line ....... */ 
+     while (*line != '\0') {
+     
+     	/* replace white spaces with 0    */
+          while(*line == ' ' || *line == '\t' || *line == '\n') *line++ = '\0';
+          /* save the argument position     */
+          *argv++ = line;          
+          /* skip the argument until ...    */
+          while (*line != '\0' && *line != ' ' && *line != '\t' && *line != '\n') line++;             
      }
-     *argv = '\0';                 /* mark the end of argument list  */
+     /* mark the end of argument list  */
+     *argv = '\0';                 
 }
 
 /*
@@ -77,34 +65,60 @@ void execute(char* command){
     }
 }
 
-int main(int argc, char *argv[]){
+int main(int argc, char *argv[]) {
 	char* file_path = "custom.txt";
     char* line; 
     ssize_t size;
     size_t n = 0;
+    printf("Hello this is Minh Anh being a CS major hehehehehheheh\n");
     
-	int help = 0;
-	char* trace_path;
-	char currentDir[LINE_MAX];
-	char* currentDir_ptr = currentDir;
+	char* currentDir = "/";
 
-	getcwd(currentDir, sizeof(currentDir));
-	printf("Starting directory: %s\n", currentDir);
+	printDir(currentDir_ptr);
 
 	char* tempDir= "/home/lu/Documents";
 
 	printf("Want to change to: %s\n", tempDir);
 	currentDir_ptr = tempDir;
-	changeDir(tempDir);
-	printf("New directory: %s\n", currentDir_ptr);
+	changeDir(currentDir_ptr);
+	printDir(currentDir_ptr);
 
-	FILE* file = fopen(file_path,"r");
-    size = getline(&line,&n,file);
-    while(size >=0){
-        // printf("Line read: %s\n",line);
-        // execute()
-        size = getline(&line,&n,file);
-    }
-    
+
+	// Parsing file
+	// FILE* file = fopen(file_path,"r");
+ //    size = getline(&line,&n,file);
+ //    while(size >=0){
+ //        // printf("Line read: %s\n",line);
+ //        // execute()
+ //        size = getline(&line,&n,file);
+ //    }
+
+
     return 0;
+}
+
+
+/*
+ * Changes the current directory for this current process
+ * as well as for any children processes. Called when
+ * "ccd" is parsed.
+ */
+void changeDir(char* newDir) {
+	if (chdir(newDir) != 0) {
+		perror(("Error changing the directory to %s\n", newDir));
+
+	}
+	/*
+	save newDir as global or return or something idk
+	call changeDir again when new child born
+	*/
+}
+
+
+/*
+ * Prints out the name of the current working directory.
+ */
+void printDir(char* currentDir) {
+	getcwd(currentDir, sizeof(currentDir));
+	printf("Current directory: %s\n", currentDir);
 }
