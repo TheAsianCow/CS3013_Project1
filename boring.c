@@ -55,8 +55,8 @@ void execute(int command){
         gettimeofday(&end, NULL);
         printf("\n-- Statistics --\n");
         printf("Elapsed time: %ld millisecond(s)\n", (end.tv_usec - start.tv_usec) / 1000);
-	faults[0] = usage.ru_majflt - faults[0];
-	faults[1] = usage.ru_minflt - faults[1];
+		faults[0] = usage.ru_majflt - faults[0];
+		faults[1] = usage.ru_minflt - faults[1];
         printf("Page Faults: %ld\n", faults[0]);
         printf("Page Faults (reclaimed): %ld \n", faults[1]);
         printf("-- End of Statistics --\n\n");
