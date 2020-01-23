@@ -72,7 +72,8 @@ int main(int argc, char *argv[]) {
     size_t n = 0;
     printf("Hello this is Minh Anh being a CS major hehehehehheheh\n");
     
-	char* currentDir = "/";
+	char* currentDir = "/home";
+	char* currentDir_ptr = currentDir;
 
 	printDir(currentDir_ptr);
 
@@ -84,14 +85,14 @@ int main(int argc, char *argv[]) {
 	printDir(currentDir_ptr);
 
 
-	// Parsing file
-	// FILE* file = fopen(file_path,"r");
- //    size = getline(&line,&n,file);
- //    while(size >=0){
- //        // printf("Line read: %s\n",line);
- //        // execute()
- //        size = getline(&line,&n,file);
- //    }
+	Parsing file
+	FILE* file = fopen(file_path,"r");
+    size = getline(&line,&n,file);
+    while(size >=0){
+        // printf("Line read: %s\n",line);
+        // execute()
+        size = getline(&line,&n,file);
+    }
 
 
     return 0;
