@@ -32,6 +32,9 @@ void printCurrentDir() {
 }
 long int faults[2] = {0,0};
 
+/*
+ * 
+ */
 void parse(char* line, char** args){
      const char s[2] = " ";
      char* token = strtok(line, s);
@@ -41,6 +44,7 @@ void parse(char* line, char** args){
         argc++;
         token = strtok(NULL, s);
      }
+     for(int i = 0; i < argc; i++) printf("arg: %s\n",args[i]);
 }
 
 /*
@@ -63,8 +67,9 @@ void execute(char* command){
         parse(command, myargs);
         getrusage(RUSAGE_SELF,&usage);
         //gettimeofday(&start,NULL);
+        printf("passing command: %send\n", myargs[0]);
         execvp(myargs[0], myargs);
-        printf("this shouldn't print out");
+        printf("this shouldn't print out\n");
     } else {
         // int wc = wait(NULL);
         while(wait(NULL)!=rc);
@@ -86,26 +91,25 @@ int main(int argc, char *argv[]){
     ssize_t size;
     size_t n = 0;
     
-	int help = 0;
-	char* trace_path;
-	char currentDir[LINE_MAX];
-	char* currentDir_ptr = currentDir;
+	// char currentDir[LINE_MAX];
+	// char* currentDir_ptr = currentDir;
 
-	getcwd(currentDir, sizeof(currentDir));
-	printf("Starting directory: %s\n", currentDir);
+	// getcwd(currentDir, sizeof(currentDir));
+	// printf("Starting directory: %s\n", currentDir);
 
-	char* tempDir= "/home/lu/Documents";
+	// char* tempDir= "/home/lu/Documents";
 
-	printf("Want to change to: %s\n", tempDir);
-	currentDir_ptr = tempDir;
-	changeDir(tempDir);
-	printf("New directory: %s\n", currentDir_ptr);
+	// printf("Want to change to: %s\n", tempDir);
+	// currentDir_ptr = tempDir;
+	// changeDir(tempDir);
+	// printf("New directory: %s\n", currentDir_ptr);
 
 	FILE* file = fopen(file_path,"r");
     size = getline(&line,&n,file);
     while(size >=0){
         // printf("Line read: %s\n",line);
-        // execute()
+        printf("executing line from file: %s\n",line);
+        execute(line);
         size = getline(&line,&n,file);
     }
     
