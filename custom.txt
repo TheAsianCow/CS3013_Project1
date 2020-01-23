@@ -1,3 +1,9 @@
 whoami
 last
 ls -al /home
+ccd /
+ls -alh
+cpwd
+ccd /home
+ls -alh
+cpwd

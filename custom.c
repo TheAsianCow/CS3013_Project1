@@ -37,32 +37,38 @@ void execute(char* command){
 
     gettimeofday(&start,NULL);
     printf("Running command: %s\n",command);
-    int rc = fork();
-    if (rc < 0) {
-        // fork failed; exit
-        fprintf(stderr, "fork failed\n");
-        exit(1);
-    } else if (rc == 0) {
-        char *myargs[34];
-        myargs[33] = NULL;
-        parse(command, myargs);
-        getrusage(RUSAGE_SELF,&usage);
-        //gettimeofday(&start,NULL);
-        // printf("passing command: %s\n", myargs[0]);
-        execvp(myargs[0], myargs);
-        // fprintf(stderr,"execvp error: %s\n",explain_execvp(myargs[0], myargs));
-    } else {
-        // int wc = wait(NULL);
-        while(wait(NULL)!=rc);
-        getrusage(RUSAGE_SELF,&usage);
-        gettimeofday(&end, NULL);
-        printf("\n-- Statistics --\n");
-        printf("Elapsed time: %ld millisecond(s)\n", (end.tv_usec - start.tv_usec) / 1000);
-        faults[0] = usage.ru_majflt - faults[0];
-        faults[1] = usage.ru_minflt - faults[1];
-        printf("Page Faults: %ld\n", faults[0]);
-        printf("Page Faults (reclaimed): %ld \n", faults[1]);
-        printf("-- End of Statistics --\n\n");
+    char *myargs[34];
+    myargs[33] = NULL;
+    parse(command, myargs);
+    if(strcmp(myargs[0],"ccd")==0){
+        
+    }else if(strcmp(myargs[0],"cpwd")==0){
+
+    }else{
+        int rc = fork();
+        if (rc < 0) {
+            // fork failed; exit
+            fprintf(stderr, "fork failed\n");
+            exit(1);
+        } else if (rc == 0) {
+            getrusage(RUSAGE_SELF,&usage);
+            //gettimeofday(&start,NULL);
+            // printf("passing command: %s\n", myargs[0]);
+            execvp(myargs[0], myargs);
+            // fprintf(stderr,"execvp error: %s\n",explain_execvp(myargs[0], myargs));
+        } else {
+            // int wc = wait(NULL);
+            while(wait(NULL)!=rc);
+            getrusage(RUSAGE_SELF,&usage);
+            gettimeofday(&end, NULL);
+            printf("\n-- Statistics --\n");
+            printf("Elapsed time: %ld millisecond(s)\n", (end.tv_usec - start.tv_usec) / 1000);
+            faults[0] = usage.ru_majflt - faults[0];
+            faults[1] = usage.ru_minflt - faults[1];
+            printf("Page Faults: %ld\n", faults[0]);
+            printf("Page Faults (reclaimed): %ld \n", faults[1]);
+            printf("-- End of Statistics --\n\n");
+        }
     }
 }
 
