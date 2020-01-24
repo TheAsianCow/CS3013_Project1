@@ -1,19 +1,26 @@
 CC=gcc
 
-all: boring custom
+all: boring custom multi
 
 boring: boring.o
-	$(CC) -o $@ boring.o
+	$(CC) -o $@ $^
 
 boring.o: boring.c
-	$(CC) -c boring.c
+	$(CC) -c $^
 
 custom: custom.o
-	$(CC) -o $@ custom.o
+	$(CC) -o $@ $^
 
-custom.o: boring.c
-	$(CC) -c custom.c
+custom.o: custom.c custom.h
+	$(CC) -c $^
+
+multi: multi.o
+	$(CC) -o $@ $^
+
+multi.o: multi.c
+	$(CC) -c $^
 
 clean:
 	rm boring.o boring
 	rm custom.o custom
+	rm multi.o multi
