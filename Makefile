@@ -1,16 +1,18 @@
+CC=gcc
+
 all: boring custom
 
 boring: boring.o
-	gcc -o boring boring.o
+	$(CC) -o $@ boring.o
 
 boring.o: boring.c
-	gcc -c boring.c
+	$(CC) -c boring.c
 
 custom: custom.o
-	gcc -o custom custom.o
+	$(CC) -o $@ custom.o
 
 custom.o: boring.c
-	gcc -c custom.c
+	$(CC) -c custom.c
 
 clean:
 	rm boring.o boring
