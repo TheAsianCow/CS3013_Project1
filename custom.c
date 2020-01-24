@@ -25,13 +25,12 @@ void parse(char* line, char** args){
         token = strtok(NULL, s);
      }
      args[argc] = NULL;
-     // for(int i = 0; i < argc; i++) printf("arg: %s\n",args[i]);
 }
 
 /*
  * int* faults: [majFaults, minFaults]
  */
-void execute(char* command){
+void execute(char* command, char** currentDir_ptr){
     struct rusage usage;
     struct timeval start,end;
 
@@ -41,10 +40,15 @@ void execute(char* command){
     myargs[33] = NULL;
     parse(command, myargs);
     if(strcmp(myargs[0],"ccd")==0){
-        
-    }else if(strcmp(myargs[0],"cpwd")==0){
-
-    }else{
+        changeDir(&myargs[1]);
+        *currentDir_ptr = myargs[1];
+        printDir(currentDir_ptr);
+    }
+    else if(strcmp(myargs[0],"cpwd")==0){
+        printDir(currentDir_ptr);
+    }
+    else{
+        changeDir(currentDir_ptr);
         int rc = fork();
         if (rc < 0) {
             // fork failed; exit
@@ -52,10 +56,7 @@ void execute(char* command){
             exit(1);
         } else if (rc == 0) {
             getrusage(RUSAGE_SELF,&usage);
-            //gettimeofday(&start,NULL);
-            // printf("passing command: %s\n", myargs[0]);
             execvp(myargs[0], myargs);
-            // fprintf(stderr,"execvp error: %s\n",explain_execvp(myargs[0], myargs));
         } else {
             // int wc = wait(NULL);
             while(wait(NULL)!=rc);
@@ -78,26 +79,19 @@ int main(int argc, char *argv[]) {
     ssize_t size;
     size_t n = 0;
     
-	// char* currentDir = "/home";
-	// char* currentDir_ptr = currentDir;
+    char arr[LINE_MAX];
+	char* currentDir = arr;
+    char** currentDir_ptr = &currentDir;
 
-	// printDir(currentDir_ptr);
+    // get the current working directory
+    getcwd(arr, sizeof(arr));
 
-	// char* tempDir= "/home/lu/Documents";
-
-	// printf("Want to change to: %s\n", tempDir);
-	// currentDir_ptr = tempDir;
-	// changeDir(currentDir_ptr);
-	// printDir(currentDir_ptr);
-
-
+    // parsing
 	FILE* file = fopen(file_path,"r");
     size = getline(&line,&n,file);
     while(size >=0){
-        // printf("Line read: %s\n",line);
         if(line[size-1]=='\n') line[size-1]='\0';
-        // printf("executing line from file: %s\n",line);
-        execute(line);
+        execute(line, currentDir_ptr);
         size = getline(&line,&n,file);
     }
 
@@ -110,22 +104,18 @@ int main(int argc, char *argv[]) {
  * as well as for any children processes. Called when
  * "ccd" is parsed.
  */
-void changeDir(char* newDir) {
-	if (chdir(newDir) != 0) {
-		perror(("Error changing the directory to %s\n", newDir));
+void changeDir(char** newDir_ptr) {
+	if (chdir(*newDir_ptr) != 0) {
+		perror(("Error changing the directory to %s\n", *newDir_ptr));
 
 	}
-	/*
-	save newDir as global or return or something idk
-	call changeDir again when new child born
-	*/
 }
 
 
 /*
  * Prints out the name of the current working directory.
  */
-void printDir(char* currentDir) {
-	getcwd(currentDir, sizeof(currentDir));
-	printf("Current directory: %s\n", currentDir);
+void printDir(char** currentDir_ptr) {
+	getcwd(*currentDir_ptr, sizeof(*currentDir_ptr));
+	printf("Current directory: %s\n\n", *currentDir_ptr);
 }

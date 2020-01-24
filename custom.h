@@ -4,9 +4,9 @@
 int LINE_MAX = 128;
 
 int main(int argc, char *argv[]);
-void execute(char* command);
+void execute(char* command, char** currentDir_ptr);
 void  parse(char *line, char **argv);
-void changeDir(char* newDir);
-void printDir(char* currentDir);
+void changeDir(char** newDir_ptr);
+void printDir(char** currentDir_ptr);
 
 #endif
