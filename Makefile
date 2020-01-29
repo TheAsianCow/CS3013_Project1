@@ -23,4 +23,3 @@ multi.o: multi.c multi.h
 clean:
 	rm boring.o boring
 	rm custom.o custom
-	rm multi.o multi

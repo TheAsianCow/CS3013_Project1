@@ -30,9 +30,14 @@ void parse(char* line, char** args){
 /*
  * int* faults: [majFaults, minFaults]
  */
-void execute(char* command, char** currentDir_ptr){
+void execute(char* command, char** currentDir_ptr, int lineNum, 
+        int* bgIndex_ptr, int** bg_ptr){
     struct rusage usage;
+    struct rusage* usage_ptr = &usage;
     struct timeval start,end;
+    int childExitStatus = 1;
+    int* childExitStatus_ptr = &childExitStatus;
+    pid_t wait3Return = 0;
 
     gettimeofday(&start,NULL);
     printf("Running command: %s\n",command);
@@ -57,11 +62,25 @@ void execute(char* command, char** currentDir_ptr){
             // fork failed; exit
             fprintf(stderr, "fork failed\n");
             exit(1);
-        } else if (rc == 0) {
+        } 
+        // child
+        else if (rc == 0) {
             getrusage(RUSAGE_SELF,&usage);
+            
             execvp(myargs[0], myargs);
-        } else {
+        } 
+        // parent
+        else {
             // int wc = wait(NULL);
+            // background check
+            if (*bg_ptr[*bgIndex_ptr] == lineNum) {
+                while (!wait3(childExitStatus_ptr, WNOHANG, usage_ptr)){
+                    printf("wait3 returned: %d\n", wait3Return);
+                    printf("child exit status ptr: %d\n", *childExitStatus_ptr);
+                }
+                int newIndex = *bgIndex_ptr + 1;
+                bgIndex_ptr = &newIndex;
+            }
             while(wait(NULL)!=rc);
             getrusage(RUSAGE_SELF,&usage);
             gettimeofday(&end, NULL);
@@ -78,29 +97,46 @@ void execute(char* command, char** currentDir_ptr){
 
 int main(int argc, char *argv[]) {
 	char* file_path = "multi.txt";
-    char* line; 
+    char* line;
     ssize_t size;
     size_t n = 0;
-    int i, bg[argc-1];
-    // for(i = 0; i < argc; i++) bg[i] = 0;
-    for(i = 1; i < argc; i++) sscanf(argv[i],"%i",&bg[i-1]);
-    // printf("line numbers of commands to run in the background\n");
-    // for(i = 0; i < argc-1; i++) printf("%d ", bg[i]);
-    // printf("\n");
 
+    // current directory variables
     char arr[LINE_MAX];
-	char* currentDir = arr;
+    char* currentDir = arr;
     char** currentDir_ptr = &currentDir;
+
+    // background variables
+    int i, bgArr[argc-1];
+    int* bg = bgArr;
+    int** bg_ptr = &bg;
+    int bgIndex = 0;
+    int* bgIndex_ptr = &bgIndex;
+    int lineNum = 1;
+
+    // parsing background line numbers from command line
+    for(i = 0; i < argc; i++)
+        bg[i] = 0;
+    for(i = 1; i < argc; i++) {
+        sscanf(argv[i],"%i",&bg[i-1]);
+    }
+
+
+    // delete these 3 lines after
+    printf("line numbers of commands to run in the background\n");
+    for(i = 0; i < argc-1; i++) printf("%d ", bg[i]);
+    printf("\n");
 
     // get the current working directory
     getcwd(arr, sizeof(arr));
 
     // parsing
-	FILE* file = fopen(file_path,"r");
-    size = getline(&line,&n,file);
-    while(size >=0){
-        if(line[size-1]=='\n') line[size-1]='\0';
-        execute(line, currentDir_ptr);
+	FILE* file = fopen(file_path,"r"); // open the file
+    size = getline(&line,&n,file); // get the next line from the file
+    while(size >=0) {
+        if (line[size-1]=='\n') 
+            line[size-1]='\0';
+        execute(line, currentDir_ptr, lineNum, bgIndex_ptr, bg_ptr);
         size = getline(&line,&n,file);
     }
 
