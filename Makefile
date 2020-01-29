@@ -17,7 +17,7 @@ custom.o: custom.c custom.h
 multi: multi.o
 	$(CC) -o $@ $^
 
-multi.o: multi.c
+multi.o: multi.c multi.h
 	$(CC) -c $^
 
 clean:

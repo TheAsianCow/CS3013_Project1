@@ -6,7 +6,7 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <getopt.h>
-#include "custom.h"
+#include "multi.h"
 // #include <libexplain/gcc_attributes.h>
 
 long int faults[2] = {0,0};
@@ -46,6 +46,9 @@ void execute(char* command, char** currentDir_ptr){
     }
     else if(strcmp(myargs[0],"cpwd")==0){
         printDir(currentDir_ptr);
+    }
+    else if(strcmp(myargs[0],"cproclist")==0){
+        cproclist();
     }
     else{
         changeDir(currentDir_ptr);
@@ -124,4 +127,10 @@ void changeDir(char** newDir_ptr) {
 void printDir(char** currentDir_ptr) {
 	getcwd(*currentDir_ptr, sizeof(*currentDir_ptr));
 	printf("Current directory: %s\n\n", *currentDir_ptr);
+}
+
+void cproclist(){
+    printf("-- Background Processes --\n");
+    int i;
+    // for(i = 0; i < bg)
 }
