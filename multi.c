@@ -10,7 +10,8 @@
 // #include <libexplain/gcc_attributes.h>
 
 long int faults[2] = {0,0};
-
+char* bg_running[100];
+int bg_cnt = 0;
 
 /*
  * 
@@ -74,6 +75,8 @@ void execute(char* command, char** currentDir_ptr, int lineNum,
             // int wc = wait(NULL);
             // background check
             if (*bg_ptr[*bgIndex_ptr] == lineNum) {
+                bg_running[bg_cnt] = strdup(command);
+                bg_cnt++;
                 while (!wait3(childExitStatus_ptr, WNOHANG, usage_ptr)){
                     printf("wait3 returned: %d\n", wait3Return);
                     printf("child exit status ptr: %d\n", *childExitStatus_ptr);
@@ -115,17 +118,11 @@ int main(int argc, char *argv[]) {
     int lineNum = 1;
 
     // parsing background line numbers from command line
-    for(i = 0; i < argc; i++)
-        bg[i] = 0;
-    for(i = 1; i < argc; i++) {
-        sscanf(argv[i],"%i",&bg[i-1]);
-    }
-
-
-    // delete these 3 lines after
-    printf("line numbers of commands to run in the background\n");
-    for(i = 0; i < argc-1; i++) printf("%d ", bg[i]);
-    printf("\n");
+    // for(i = 0; i < argc; i++)bg[i] = 0;
+    for(i = 1; i < argc; i++) sscanf(argv[i],"%i",&bg[i-1]);
+    // printf("line numbers of commands to run in the background\n");
+    // for(i = 0; i < argc-1; i++) printf("%d ", bg[i]);
+    // printf("\n");
 
     // get the current working directory
     getcwd(arr, sizeof(arr));
@@ -134,8 +131,7 @@ int main(int argc, char *argv[]) {
 	FILE* file = fopen(file_path,"r"); // open the file
     size = getline(&line,&n,file); // get the next line from the file
     while(size >=0) {
-        if (line[size-1]=='\n') 
-            line[size-1]='\0';
+        if(line[size-1]=='\n') line[size-1]='\0';
         execute(line, currentDir_ptr, lineNum, bgIndex_ptr, bg_ptr);
         size = getline(&line,&n,file);
     }
@@ -168,5 +164,6 @@ void printDir(char** currentDir_ptr) {
 void cproclist(){
     printf("-- Background Processes --\n");
     int i;
-    // for(i = 0; i < bg)
+    for(i = 0; i < bg_cnt;i++) printf("[%d] %s\n",i,bg_running[i]);
+    printf("\n");
 }
