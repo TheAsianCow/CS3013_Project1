@@ -9,5 +9,6 @@ void execute(char* command, char** currentDir_ptr, int lineNum,
 void  parse(char *line, char **argv);
 void changeDir(char** newDir_ptr);
 void printDir(char** currentDir_ptr);
+void cproclist();
 
 #endif
