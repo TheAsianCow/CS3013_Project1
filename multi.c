@@ -12,7 +12,7 @@
 long int faults[2] = {0,0};
 char* bg_running[100];
 int bg_cnt = 0;
-
+int end_of_file_flag = 0;
 /*
  * 
  */
@@ -137,22 +137,24 @@ void execute(char* command, char** currentDir_ptr, int lineNum,
                 printf("-- End of Statistics --\n\n");
 
                 printf("time to wait for other tasks");
-                wait3Return = wait3(childExitStatus_ptr, WNOHANG, usage_ptr);
-                while(wait3Return>=0) { 
-                    if(wait3Return){
-                        getrusage(RUSAGE_SELF,&usage);
-                        gettimeofday(&end, NULL);
-                        printf("\n-- Statistics --\n");
-                        printf("not background\n");
-                        printf("Elapsed time: %ld millisecond(s)\n", end.tv_sec * 1000 - start.tv_sec * 1000 + 
-                            (end.tv_usec - start.tv_usec) / 1000);
-                        faults[0] = usage.ru_majflt - faults[0];
-                        faults[1] = usage.ru_minflt - faults[1];
-                        printf("Page Faults: %ld\n", faults[0]);
-                        printf("Page Faults (reclaimed): %ld \n", faults[1]);
-                        printf("-- End of Statistics --\n\n");
-                    }
+                if(end_of_file_flag){
                     wait3Return = wait3(childExitStatus_ptr, WNOHANG, usage_ptr);
+                    while(wait3Return>=0) { 
+                        if(wait3Return){
+                            getrusage(RUSAGE_SELF,&usage);
+                            gettimeofday(&end, NULL);
+                            printf("\n-- Statistics --\n");
+                            printf("not background\n");
+                            printf("Elapsed time: %ld millisecond(s)\n", end.tv_sec * 1000 - start.tv_sec * 1000 + 
+                                (end.tv_usec - start.tv_usec) / 1000);
+                            faults[0] = usage.ru_majflt - faults[0];
+                            faults[1] = usage.ru_minflt - faults[1];
+                            printf("Page Faults: %ld\n", faults[0]);
+                            printf("Page Faults (reclaimed): %ld \n", faults[1]);
+                            printf("-- End of Statistics --\n\n");
+                        }
+                        wait3Return = wait3(childExitStatus_ptr, WNOHANG, usage_ptr);
+                    }
                 }
                 printf("parent finished\n");
             }
@@ -208,6 +210,7 @@ int main(int argc, char *argv[]) {
         lineNum++;
         size = getline(&line,&n,file);
     }
+    end_of_file_flag = 1;
 
     return 0;
 }
