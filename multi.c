@@ -5,6 +5,7 @@
 #include <sys/wait.h>
 #include <sys/time.h>
 #include <sys/resource.h>
+#include <sys/types.h>
 #include <getopt.h>
 #include "multi.h"
 // #include <libexplain/gcc_attributes.h>
@@ -33,14 +34,18 @@ void parse(char* line, char** args){
  */
 void execute(char* command, char** currentDir_ptr, int lineNum, 
         int* bgIndex_ptr, int** bg_ptr){
+    // printf("in execute\n");
     struct rusage usage;
     // struct rusage wait3Usage;
     struct rusage* usage_ptr = &usage;
     // struct rusage* wait3Usage_ptr = &wait3Usage;
     struct timeval start,end;
-    int childExitStatus = 0;
-    int* childExitStatus_ptr = &childExitStatus;
+    int childExitStatus;
+    // int* childExitStatus_ptr = &childExitStatus;
     pid_t wait3Return = 0;
+    pid_t wait4Return = 0;
+    pid_t processID = 0;
+    pid_t* processID_ptr = &processID;
 
     gettimeofday(&start,NULL);
     printf("Running command: %s\n",command);
@@ -68,80 +73,162 @@ void execute(char* command, char** currentDir_ptr, int lineNum,
         } 
         // child
         else if (rc == 0) {
+            processID = getpid();
+            processID_ptr = &processID;
             getrusage(RUSAGE_SELF,&usage);
             execvp(myargs[0], myargs);
             // printf("child done\n");
         } 
-        // parent
+        // PARENT
         else {
-            // BACKGROUND CHECK
             // printf("parent started\n");
-            printf("line num: %d\n", lineNum);
-            printf("bg ptr: %d\n", *bg_ptr[*bgIndex_ptr]);
+            // printf("line num: %d\n", lineNum);
+            // printf("bg ptr: %d\n", *bg_ptr[*bgIndex_ptr]);
+
+            // BACKGROUND
             if (*bg_ptr[*bgIndex_ptr] == lineNum) {
                 printf("is background\n");
                 bg_running[bg_cnt] = strdup(command);
                 bg_cnt++;
-                while (!wait3(childExitStatus_ptr, WNOHANG, usage_ptr)){
-                    printf("wait3 returned: %d\n", wait3Return);
-                    printf("child exit status ptr: %d\n", *childExitStatus_ptr);
-                }
+                // while (!wait3(childExitStatus_ptr, WNOHANG, usage_ptr)){
+                //     printf("wait3 returned: %d\n", wait3Return);
+                //     printf("child exit status ptr: %d\n", *childExitStatus_ptr);
+                // }
                 int newIndex = *bgIndex_ptr + 1;
                 bgIndex_ptr = &newIndex;
-                while (wait3(childExitStatus_ptr, WNOHANG, usage_ptr) == 0) {
-                    while(wait(NULL)!=rc);
-                    getrusage(RUSAGE_SELF,&usage);
-                    gettimeofday(&end, NULL);
-                    printf("\n-- Statistics --\n");
-                    printf("background\n");
-                    printf("Elapsed time: %ld millisecond(s)\n", (end.tv_usec - start.tv_usec) / 1000);
-                    faults[0] = usage.ru_majflt - faults[0];
-                    faults[1] = usage.ru_minflt - faults[1];
-                    printf("Page Faults: %ld\n", faults[0]);
-                    printf("Page Faults (reclaimed): %ld \n", faults[1]);
-                    printf("-- End of Statistics --\n\n");
+
+                wait3Return = wait3(&childExitStatus, WNOHANG, usage_ptr);
+                printf("wait3Return in bg parent: %d\n", wait3Return);
+
+                while (wait3Return != -1) {
+                    if (wait3Return == 0) {
+                        while(wait(NULL)!=rc);
+                        getrusage(RUSAGE_SELF,&usage);
+                        gettimeofday(&end, NULL);
+                        printf("\n-- Statistics --\n");
+                        // printf("background\n");
+                        printf("Elapsed time: %ld millisecond(s)\n", (end.tv_sec * 1000 - start.tv_sec * 1000) + 
+                        (end.tv_usec - start.tv_usec) / 1000);
+                        faults[0] = usage.ru_majflt - faults[0];
+                        faults[1] = usage.ru_minflt - faults[1];
+                        printf("Page Faults: %ld\n", faults[0]);
+                        printf("Page Faults (reclaimed): %ld \n", faults[1]);
+                        printf("-- End of Statistics --\n\n");
+                    }
+                    wait3Return = wait3(&childExitStatus, WNOHANG, usage_ptr);
+                    printf("wait3Return in bg parent: %d\n", wait3Return);
                 }
+                // while (wait3(NULL, WNOHANG, usage_ptr) != -1) {
+                //     while(wait(NULL)!=rc);
+                //     getrusage(RUSAGE_SELF,&usage);
+                //     gettimeofday(&end, NULL);
+                //     printf("\n-- Statistics --\n");
+                //     // printf("background\n");
+                //     printf("Elapsed time: %ld millisecond(s)\n", (end.tv_usec - start.tv_usec) / 1000);
+                //     faults[0] = usage.ru_majflt - faults[0];
+                //     faults[1] = usage.ru_minflt - faults[1];
+                //     printf("Page Faults: %ld\n", faults[0]);
+                //     printf("Page Faults (reclaimed): %ld \n", faults[1]);
+                //     printf("-- End of Statistics --\n\n");
+                // }
             }
-            else {
-                // printf("here\n");
-                while (wait3(childExitStatus_ptr, 0, usage_ptr) == 0) { // pick up bg processes
-                    while(wait(NULL)!=rc);
-                    getrusage(RUSAGE_SELF,&usage);
-                    gettimeofday(&end, NULL);
-                    printf("\n-- Statistics --\n");
-                    printf("not background\n");
-                    printf("Elapsed time: %ld millisecond(s)\n", (end.tv_usec - start.tv_usec) / 1000);
-                    faults[0] = usage.ru_majflt - faults[0];
-                    faults[1] = usage.ru_minflt - faults[1];
-                    printf("Page Faults: %ld\n", faults[0]);
-                    printf("Page Faults (reclaimed): %ld \n", faults[1]);
-                    printf("-- End of Statistics --\n\n");
+            else { // FOREGROUND
+                printf("is foreground\n");
+                wait4Return = wait4(processID, NULL, 0, usage_ptr);
+                printf("wait4Return in fg parent: %d\n", wait4Return);
+
+                // wait3Return = wait3(NULL, 0, usage_ptr);
+                // printf("wait3Return in fg parent: %d\n", wait3Return);
+
+
+                // WHILE FOREGROUND ISN'T FINISHED
+                while (wait4Return == -1) {
+                    // printf("wait3Return is not -1 yay\n");
+                    // while(wait(NULL)!=rc);
+
+                    // PRINT OUT BACKGROUND CHILDREN THAT ARE FINISHED
+                    wait3Return = wait3(&childExitStatus, WNOHANG, usage_ptr);
+                    printf("wait3Return in fg parent: %d\n", wait3Return);
+
+                    while (wait3Return != -1) {
+                        if (wait3Return == 0) {
+                            while(wait(NULL)!=rc);
+                            getrusage(RUSAGE_SELF,&usage);
+                            gettimeofday(&end, NULL);
+                            printf("\n-- Statistics --\n");
+                            // printf("background\n");
+                            printf("Elapsed time: %ld millisecond(s)\n", (end.tv_sec * 1000 - start.tv_sec * 1000) + 
+                            (end.tv_usec - start.tv_usec) / 1000);
+                            faults[0] = usage.ru_majflt - faults[0];
+                            faults[1] = usage.ru_minflt - faults[1];
+                            printf("Page Faults: %ld\n", faults[0]);
+                            printf("Page Faults (reclaimed): %ld \n", faults[1]);
+                            printf("-- End of Statistics --\n\n");
+                        }
+                        wait3Return = wait3(&childExitStatus, WNOHANG, usage_ptr);
+                        printf("wait3Return in fg parent: %d\n", wait3Return);
+                    }
+                    
+                    
+                    wait4Return = wait4(processID, NULL, 0, usage_ptr);
+                    printf("wait4Return in fg parent: %d\n", wait4Return);
                 }
-                printf("wait3return after wait3 in non bg: %d\n", wait3Return);
-                while (wait3(childExitStatus_ptr, WNOHANG, usage_ptr) == 0) { // while 
-                    while(wait(NULL)!=rc);
-                    getrusage(RUSAGE_SELF,&usage);
-                    gettimeofday(&end, NULL);
-                    printf("\n-- Statistics --\n");
-                    printf("not background\n");
-                    printf("Elapsed time: %ld millisecond(s)\n", (end.tv_usec - start.tv_usec) / 1000);
-                    faults[0] = usage.ru_majflt - faults[0];
-                    faults[1] = usage.ru_minflt - faults[1];
-                    printf("Page Faults: %ld\n", faults[0]);
-                    printf("Page Faults (reclaimed): %ld \n", faults[1]);
-                    printf("-- End of Statistics --\n\n");
-                }
+
+                // FOREGROUND FINISHED, PRINT STATS
+                getrusage(RUSAGE_SELF,&usage);
+                gettimeofday(&end, NULL);
+                printf("\n-- Statistics --\n");
+                printf("Elapsed time: %ld millisecond(s)\n", (end.tv_sec * 1000 - start.tv_sec * 1000) + 
+                    (end.tv_usec - start.tv_usec) / 1000);
+                faults[0] = usage.ru_majflt - faults[0];
+                faults[1] = usage.ru_minflt - faults[1];
+                printf("Page Faults: %ld\n", faults[0]);
+                printf("Page Faults (reclaimed): %ld \n", faults[1]);
+                printf("-- End of Statistics --\n\n");
+
+                // while (wait3Return >= 0) {
+                //     // printf("wait3Return is not -1 yay\n");
+                //     // while(wait(NULL)!=rc);
+                //     getrusage(RUSAGE_SELF,&usage);
+                //     gettimeofday(&end, NULL);
+                //     printf("\n-- Statistics --\n");
+                //     printf("Elapsed time: %ld millisecond(s)\n", (end.tv_sec * 1000 - start.tv_sec * 1000) + 
+                //         (end.tv_usec - start.tv_usec) / 1000);
+                //     faults[0] = usage.ru_majflt - faults[0];
+                //     faults[1] = usage.ru_minflt - faults[1];
+                //     printf("Page Faults: %ld\n", faults[0]);
+                //     printf("Page Faults (reclaimed): %ld \n", faults[1]);
+                //     printf("-- End of Statistics --\n\n");
+                    
+                //     wait3Return = wait3(NULL, 0, usage_ptr);
+                //     printf("wait3Return in fg parent: %d\n", wait3Return);
+                // }
+
+
+
+
+
+
+
+                // while (wait3(childExitStatus_ptr, WNOHANG, usage_ptr) != -1) { // while 
+                //     while(wait(NULL)!=rc);
+                //     getrusage(RUSAGE_SELF,&usage);
+                //     gettimeofday(&end, NULL);
+                //     printf("\n-- Statistics --\n");
+                //     // printf("not background\n");
+                //     printf("Elapsed time: %ld millisecond(s)\n", (end.tv_usec - start.tv_usec) / 1000);
+                //     faults[0] = usage.ru_majflt - faults[0];
+                //     faults[1] = usage.ru_minflt - faults[1];
+                //     printf("Page Faults: %ld\n", faults[0]);
+                //     printf("Page Faults (reclaimed): %ld \n", faults[1]);
+                //     printf("-- End of Statistics --\n\n");
+                // }
+
+
+
+
+
             }
-            // while(wait(NULL)!=rc);
-            // getrusage(RUSAGE_SELF,&usage);
-            // gettimeofday(&end, NULL);
-            // printf("\n-- Statistics --\n");
-            // printf("Elapsed time: %ld millisecond(s)\n", (end.tv_usec - start.tv_usec) / 1000);
-            // faults[0] = usage.ru_majflt - faults[0];
-            // faults[1] = usage.ru_minflt - faults[1];
-            // printf("Page Faults: %ld\n", faults[0]);
-            // printf("Page Faults (reclaimed): %ld \n", faults[1]);
-            // printf("-- End of Statistics --\n\n");
         }
     }
 }
