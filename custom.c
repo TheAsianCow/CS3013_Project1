@@ -74,7 +74,7 @@ void execute(char* command, char** currentDir_ptr){
 }
 
 int main(int argc, char *argv[]) {
-	char* file_path = "multi.txt";
+	char* file_path = "custom.txt";
     char* line; 
     ssize_t size;
     size_t n = 0;
