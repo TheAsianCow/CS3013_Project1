@@ -12,7 +12,7 @@
 // #include <libexplain/gcc_attributes.h>
 
 typedef struct proc_bg{
-    int done = 0;
+    int done;
     long int start_faults[2];
     struct timeval start_time;
     char* cmd;
@@ -20,12 +20,6 @@ typedef struct proc_bg{
     struct proc_bg* next;
     struct proc_bg* prev;
 }proc_bg;
-
-typedef struct execArgs {
-    int isBG;
-    char* command;
-    char** currentDir_ptr;
-} execArgs;
 
 
 proc_bg* bg_list = NULL;
@@ -45,31 +39,31 @@ void parse(char* line, char** args){
 /*
  * int* faults: [majFaults, minFaults]
  */
-void* execute(void* arguments){
-    struct execArgs *args = arguments;
+void execute(char* command, char** currentDir_ptr, int lineNum, 
+        int* bgIndex_ptr, int** bg_ptr) {
     struct rusage usage;
     struct timeval start;
     long int fg_faults[2] = {0,0};
     gettimeofday(&start,NULL);
 
 
-    printf("Running command: %s\n",args->command);
+    printf("Running command: %s\n", command);
     char *myargs[34];
     myargs[33] = NULL;
-    parse(args->command, myargs);
+    parse(command, myargs);
     if(strcmp(myargs[0],"ccd")==0){
         changeDir(&myargs[1]);
-        *(args->currentDir_ptr) = myargs[1];
-        printDir(args->currentDir_ptr);
+        *(currentDir_ptr) = myargs[1];
+        printDir(currentDir_ptr);
     }
     else if(strcmp(myargs[0],"cpwd")==0){
-        printDir(args->currentDir_ptr);
+        printDir(currentDir_ptr);
     }
     else if(strcmp(myargs[0],"cproclist")==0){
         printBgList();
     }
     else{
-        changeDir(args->currentDir_ptr);
+        changeDir(currentDir_ptr);
         int rc = fork();
         if (rc < 0) {
             // fork failed; exit
@@ -80,13 +74,11 @@ void* execute(void* arguments){
             getrusage(RUSAGE_SELF,&usage);
             fg_faults[0] = usage.ru_majflt;
             fg_faults[1] = usage.ru_minflt;
-            if (args->isBG == 1) {
-                addBgProc(fg_faults[0], fg_faults[1], &start, args->command);
+            if (*bg_ptr[*bgIndex_ptr] == lineNum) {
+                // struct timeval* start_ptr = &start;
+                addBgProc(fg_faults[0], fg_faults[1], start, command);
             }
             execvp(myargs[0], myargs);
-            if (args->isBG) {
-                updateBGThreadStatus();
-            }
         }
         else { // PARENT
             while(wait(NULL)!=rc);
@@ -109,13 +101,10 @@ int main(int argc, char *argv[]) {
     // background variables
     int i, bgArr[argc-1];
     int* bg = bgArr;
+    int** bg_ptr = &bg;
     int bgIndex = 0;
+    int* bgIndex_ptr = &bgIndex;
     int lineNum = 1;
-
-    // thread variables
-    pthread_t bgThread;
-    int bgThreadRet;
-    struct execArgs executeArgs = {0, line, currentDir_ptr};
 
     // get the current working directory
     getcwd(arr, sizeof(arr));
@@ -127,20 +116,10 @@ int main(int argc, char *argv[]) {
     FILE* file = fopen(file_path,"r");
     size = getline(&line,&n,file);
     while(size >=0){
-        executeArgs.currentDir_ptr = currentDir_ptr;
-        executeArgs.command = line;
         if(line[size-1]=='\n') line[size-1]='\0';
-        if (bg[bgIndex] == lineNum) { // BACKGROUND
-            bgThreadRet = pthread_create(&bgThread, NULL, &execute, (void*) &executeArgs);
-        }
-        else {
-            execute(&executeArgs);
-        }
+        execute(line, currentDir_ptr, lineNum, bgIndex_ptr, bg_ptr);
         lineNum++;
         size = getline(&line,&n,file);
-        if (bgThreadRet == 0) {
-            pthread_join(bgThread, NULL);
-        }
     }
 
     return 0;
@@ -185,17 +164,13 @@ void printBgList(){
     }
 }
 
-void addBgProc(long int majflt, long int minflt, struct timeval* time, char* cmd){
+void addBgProc(long int majflt, long int minflt, struct timeval time, char* cmd){
     proc_bg new;
     if(bg_list==NULL){
-        
+        printf("blah\n");
     }
 }
 
 void rmBgProc(){
 
-}
-
-updateBGThreadStatus() {
-    
 }
