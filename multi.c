@@ -14,7 +14,7 @@
 typedef struct proc_bg{
     int done;
     long int start_faults[2];
-    struct timeval start_time;
+    struct timeval* start_time;
     char* cmd;
     int queue_num;
     struct proc_bg* next;
@@ -122,6 +122,16 @@ int main(int argc, char *argv[]) {
         size = getline(&line,&n,file);
     }
 
+    //testing bg_list
+    printf("initial bg_list\n");
+    printBgList();
+    printf("adding 3 bg tasks\n");
+    addBgProc(0,0,NULL,strdup("cmd1"));
+    addBgProc(0,0,NULL,strdup("cmd2"));
+    addBgProc(0,0,NULL,strdup("cmd3"));
+    printf("printing bg_list with 3 proc_bg\n");
+    printBgList();
+
     return 0;
 }
 
@@ -156,18 +166,46 @@ void printStats(long int start_majflt, long int start_minflt, long int end_majfl
 }
 
 void printBgList(){
+    printf("-- Background Processes --\n");
+
+    proc_bg* current = bg_list;
     if(bg_list!=NULL){
-        while(bg_list->next!=NULL){
-            printf("-- Background Processes --\n");
-            printf("[%d] %s\n", bg_list->queue_num, bg_list->cmd);
+        while(current!=NULL){
+            printf("[%d] %s\n", current->queue_num, current->cmd);
+            current = current->next;
         }
     }
+    printf("\n");
 }
 
-void addBgProc(long int majflt, long int minflt, struct timeval time, char* cmd){
-    proc_bg new;
+
+void addBgProc(long int majflt, long int minflt, struct timeval* time, char* cmd){
     if(bg_list==NULL){
-        printf("blah\n");
+        bg_list = (proc_bg*)malloc(sizeof(proc_bg));
+        bg_list->start_faults[0] = majflt;
+        bg_list->start_faults[1] = minflt;
+        bg_list->start_time = time;
+        bg_list->cmd = cmd;
+        bg_list->queue_num = 0;
+        bg_list->next = NULL;
+    }else{
+        proc_bg* current = bg_list;
+        int cnt = 1;
+        while(current->next!=NULL){
+            cnt++;
+            current = current->next;
+        }
+        printf("current is currently pointing to: %s\n", current->cmd);
+        proc_bg* new = (proc_bg*)malloc(sizeof(proc_bg));
+        new->start_faults[0] = majflt;
+        new->start_faults[1] = minflt;
+        new->start_time = time;
+        new->cmd = cmd;
+        new->queue_num = cnt;
+        new->next = NULL;
+        printf("the new proc_bg's cmd: %s\n", new->cmd);
+        current->next = new;
+        printf("current->next's cmd: %s\n",current->next->cmd);
     }
 }
 

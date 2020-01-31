@@ -11,6 +11,5 @@ void changeDir(char** newDir_ptr);
 void printDir(char** currentDir_ptr);
 void printStats();
 void printBgList();
-void addBgProc(long int majflt, long int minflt, struct timeval time, char* cmd);
-
+void addBgProc(long int majflt, long int minflt, struct timeval* time, char* cmd);
 #endif
