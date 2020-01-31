@@ -77,7 +77,7 @@ void execute(char* command, char** currentDir_ptr, int lineNum,
             fg_faults[1] = usage.ru_minflt;
             if (*bg_ptr[*bgIndex_ptr] == lineNum) {
                 // struct timeval* start_ptr = &start;
-                addBgProc(fg_faults[0], fg_faults[1], start, command);
+                // addBgProc(fg_faults[0], fg_faults[1], &start, command);
             }
             execvp(myargs[0], myargs);
         }
@@ -90,7 +90,7 @@ void execute(char* command, char** currentDir_ptr, int lineNum,
 }
 
 int main(int argc, char *argv[]) {
-    char* file_path = "multi.txt";
+    char* file_path = "custom.txt";
     char* line; 
     ssize_t size;
     size_t n = 0;
@@ -132,6 +132,14 @@ int main(int argc, char *argv[]) {
     addBgProc(0,0,NULL,strdup("cmd3"),0);
     printf("printing bg_list with 3 proc_bg\n");
     printBgList();
+    printf("removing bg_list proc_bgs\n");
+    rmBgProc(0);
+    printBgList();
+    rmBgProc(0);
+    printBgList();
+    rmBgProc(0);
+    printBgList();
+
 
     return 0;
 }
@@ -213,6 +221,33 @@ void addBgProc(long int majflt, long int minflt, struct timeval* time, char* cmd
     }
 }
 
-void rmBgProc(){
-
+void rmBgProc(pid_t pid){
+    if(bg_list==NULL) return;
+    if(bg_list->pid == pid){
+        proc_bg* tmp = bg_list;
+        printf("found matching pid\n");
+        if(bg_list->next!=NULL){
+            printf("head's next: %s\n",bg_list->next->cmd);
+            bg_list->next->prev = NULL;
+        }
+        bg_list = bg_list->next;
+        free(tmp);
+        return;
+    }
+    proc_bg* current = bg_list;
+    while(current!=NULL){
+        if(current->pid == pid){
+            printf("found matching pid\n");
+            if(current->prev!=NULL){
+                printf("current's prev: %s\n",current->prev->cmd);
+                current->prev->next = current->next;
+            }
+            if(current->next!=NULL){
+                printf("current's next: %s\n",current->next->cmd);
+                current->next->prev = current->prev;
+            }
+            free(current);
+            return;
+        }else current = current->next;
+    }
 }
