@@ -23,6 +23,9 @@ typedef struct proc_bg{
 
 
 proc_bg* bg_list = NULL;
+int bgIndex = 0;
+int* bg;
+// int* bgIndex_ptr = &bgIndex;
 
 void parse(char* line, char** args){
      const char s[2] = " ";
@@ -39,12 +42,19 @@ void parse(char* line, char** args){
 /*
  * int* faults: [majFaults, minFaults]
  */
-void execute(char* command, char** currentDir_ptr, int lineNum, 
-        int* bgIndex_ptr, int** bg_ptr) {
+void execute(char* command, char** currentDir_ptr, int lineNum) {
     struct rusage usage;
-    struct timeval start;
+    struct timeval start, end;
     long int fg_faults[2] = {0,0};
     gettimeofday(&start,NULL);
+
+    // parent variables
+    int childExitStatus;
+    int* childExitStatus_ptr = &childExitStatus;
+    pid_t wait3Return = 0;
+    pid_t wait4Return = 0;
+    pid_t processID = 0;
+    pid_t* processID_ptr = &processID;
 
 
     printf("Running command: %s\n", command);
@@ -65,25 +75,77 @@ void execute(char* command, char** currentDir_ptr, int lineNum,
     else{
         changeDir(currentDir_ptr);
         int rc = fork();
+        // *processID_ptr = getpid();
+        // printf("fork process ID for command %s: %d\n", command, *processID_ptr);
         if (rc < 0) {
             // fork failed; exit
             fprintf(stderr, "fork failed\n");
             exit(1);
         }
         else if (rc == 0) { // CHILD
+            *processID_ptr = getpid();
+            printf("child process ID for command %s: %d\n", command, *processID_ptr);
             getrusage(RUSAGE_SELF,&usage);
             fg_faults[0] = usage.ru_majflt;
             fg_faults[1] = usage.ru_minflt;
-            if (*bg_ptr[*bgIndex_ptr] == lineNum) {
-                // struct timeval* start_ptr = &start;
-                addBgProc(fg_faults[0], fg_faults[1], start, command);
+            if (bg[bgIndex] == lineNum) { // BACKGROUND - ADD TO LINKED LIST
+                addBgProc(fg_faults[0], fg_faults[1], &start, command);
             }
             execvp(myargs[0], myargs);
         }
         else { // PARENT
-            while(wait(NULL)!=rc);
-            getrusage(RUSAGE_SELF,&usage);
-            printStats(fg_faults[0], fg_faults[1], usage.ru_majflt, usage.ru_minflt,&start);
+            printf("linenum: %d\n", lineNum);
+            printf("next bg ine num: %d\n", bg[bgIndex]);
+            if (bg[bgIndex] == lineNum) { // BACKGROUND
+                printf("is background\n");
+                // bg_running[bg_cnt] = strdup(command);
+                // *bgIndex_ptr = *bgIndex_ptr + 1;
+                // while(wait3(childExitStatus_ptr, WNOHANG, usage_ptr)){
+                //     // printf("wait3 returned: %d\n", wait3Return);
+                //     // printf("child exit status ptr: %d\n", *childExitStatus_ptr);
+                // }
+                bgIndex++;
+                // printf("bg index: %d", )
+                // bgIndex_ptr = &newIndex;
+                while (wait3(childExitStatus_ptr, WNOHANG, &usage) > 0) {
+                    // printf("about to print stats\n");
+                    printStats(fg_faults[0], fg_faults[1], usage.ru_majflt, usage.ru_minflt,&start);
+                    // printf("finished printing stats\n");
+                }
+                printf("wait3return is now %d\n", wait3Return);
+                // while (wait3(childExitStatus_ptr, WNOHANG, &usage) == 0) {
+                //     printStats(fg_faults[0], fg_faults[1], usage.ru_majflt, usage.ru_minflt,&start);
+                // }
+                printf("exited background\n");
+            }
+            else { // FOREGROUND
+                printf("is foreground for command %s, process ID %d\n", command, getpid());
+                while (wait4(*processID_ptr, childExitStatus_ptr, 0, &usage) <= 0) {
+                    wait3Return = wait3(childExitStatus_ptr, WNOHANG, &usage);
+                    printf("wait 3 return %d, process id %d\n", wait3Return, *processID_ptr);
+                    if (wait3Return > 0) {
+                        if (wait3Return == *processID_ptr) {
+                            printf("reached if\n");
+                            return;
+                        }
+                        printf("about to print stats\n");
+                        printStats(fg_faults[0], fg_faults[1], usage.ru_majflt, usage.ru_minflt,&start);
+                        printf("finished printing stats\n");
+                    }
+                    printf("stuck in wait4\n");
+                }
+                printf("foreground done\n");
+                while (wait3(childExitStatus_ptr, WNOHANG, &usage) > 0) {
+                    // printf("about to print stats\n");
+                    printStats(fg_faults[0], fg_faults[1], usage.ru_majflt, usage.ru_minflt,&start);
+                    // printf("finished printing stats\n");
+                }
+                printStats(fg_faults[0], fg_faults[1], usage.ru_majflt, usage.ru_minflt,&start);
+                printf("exited foreground\n");
+            }
+            
+            // getrusage(RUSAGE_SELF,&usage);
+            // printStats(fg_faults[0], fg_faults[1], usage.ru_majflt, usage.ru_minflt,&start);
         }
     }
 }
@@ -100,10 +162,8 @@ int main(int argc, char *argv[]) {
 
     // background variables
     int i, bgArr[argc-1];
-    int* bg = bgArr;
-    int** bg_ptr = &bg;
-    int bgIndex = 0;
-    int* bgIndex_ptr = &bgIndex;
+    bg = bgArr;
+    // int** bg_ptr = &bg;
     int lineNum = 1;
 
     // get the current working directory
@@ -117,7 +177,7 @@ int main(int argc, char *argv[]) {
     size = getline(&line,&n,file);
     while(size >=0){
         if(line[size-1]=='\n') line[size-1]='\0';
-        execute(line, currentDir_ptr, lineNum, bgIndex_ptr, bg_ptr);
+        execute(line, currentDir_ptr, lineNum);
         lineNum++;
         size = getline(&line,&n,file);
     }
