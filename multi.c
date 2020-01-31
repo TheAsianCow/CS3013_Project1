@@ -7,6 +7,7 @@
 #include <sys/resource.h>
 #include <sys/types.h>
 #include <getopt.h>
+#include <pthread.h>
 #include "multi.h"
 // #include <libexplain/gcc_attributes.h>
 
@@ -143,7 +144,9 @@ void printBgList(){
 
 void addBgProc(long int majflt, minflt, struct timeval* time, char* cmd){
     proc_bg new;
-    if(bg_list==NULL)
+    if(bg_list==NULL){
+        
+    }
 }
 
 void rmBgProc(){
