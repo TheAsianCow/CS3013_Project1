@@ -75,13 +75,15 @@ void execute(char* command, char** currentDir_ptr, int lineNum) {
         }
         else if (rc == 0) { // CHILD
             *processID_ptr = getpid();
-            // printf("child process ID for command %s: %d\n", command, *processID_ptr);
+            printf("child process ID for command %s: %d\n", command, *processID_ptr);
             getrusage(RUSAGE_SELF,&usage);
             fg_faults[0] = usage.ru_majflt;
             fg_faults[1] = usage.ru_minflt;
             if (bg[bgIndex] == lineNum) { // BACKGROUND - ADD TO LINKED LIST
                 addBgProc(fg_faults[0], fg_faults[1], &start, cmd_dup, *processID_ptr);
                 printBgList();
+                proc_bg* tmp = findProc_Bg(*processID_ptr);
+                if(tmp!=NULL)printf("added proc_bg with pid: %d\n", tmp->pid);
             }
             execvp(myargs[0], myargs);
         }
@@ -170,6 +172,8 @@ int main(int argc, char *argv[]) {
     while(size >=0){
         if(line[size-1]=='\n') line[size-1]='\0';
         execute(line, currentDir_ptr, lineNum);
+        // printf("lets check the bg_list\n");
+        // printBgList();
         lineNum++;
         size = getline(&line,&n,file);
     }
@@ -244,6 +248,11 @@ void printStats(long int start_majflt, long int start_minflt, long int end_majfl
 }
 
 void printBgList(){
+    if(bg_list = NULL){
+        printf("bg_list is points to NULL\n");
+        return;
+    }
+
     printf("-- Background Processes --\n");
 
     proc_bg* current = bg_list;
