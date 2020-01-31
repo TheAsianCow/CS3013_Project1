@@ -29,5 +29,7 @@ void printStats(long int start_majflt, long int start_minflt, long int end_majfl
 void printBgList();
 void addBgProc(long int majflt, long int minflt, struct timeval* time, char* cmd, pid_t pid);
 void rmBgProc(pid_t pid);
-proc_bg* findProc_Bg(pid_t pid);
+proc_bg* findProc_Bg_pid(pid_t pid);
+proc_bg* findProc_Bg_cmd(char* cmd);
+
 #endif
