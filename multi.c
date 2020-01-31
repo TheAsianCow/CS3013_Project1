@@ -11,17 +11,6 @@
 #include "multi.h"
 // #include <libexplain/gcc_attributes.h>
 
-typedef struct proc_bg{
-    int done;
-    long int start_faults[2];
-    struct timeval* start_time;
-    char* cmd;
-    pid_t pid;
-    int queue_num;
-    struct proc_bg* next;
-    struct proc_bg* prev;
-}proc_bg;
-
 
 proc_bg* bg_list = NULL;
 int bgIndex = 0;
@@ -48,6 +37,7 @@ void execute(char* command, char** currentDir_ptr, int lineNum) {
     struct timeval start, end;
     long int fg_faults[2] = {0,0};
     gettimeofday(&start,NULL);
+    char* cmd_dup = strdup(command);
 
     // parent variables
     int childExitStatus;
@@ -85,18 +75,19 @@ void execute(char* command, char** currentDir_ptr, int lineNum) {
         }
         else if (rc == 0) { // CHILD
             *processID_ptr = getpid();
-            printf("child process ID for command %s: %d\n", command, *processID_ptr);
+            // printf("child process ID for command %s: %d\n", command, *processID_ptr);
             getrusage(RUSAGE_SELF,&usage);
             fg_faults[0] = usage.ru_majflt;
             fg_faults[1] = usage.ru_minflt;
             if (bg[bgIndex] == lineNum) { // BACKGROUND - ADD TO LINKED LIST
-                addBgProc(fg_faults[0], fg_faults[1], &start, command);
+                addBgProc(fg_faults[0], fg_faults[1], &start, cmd_dup, *processID_ptr);
+                printBgList();
             }
             execvp(myargs[0], myargs);
         }
         else { // PARENT
-            printf("linenum: %d\n", lineNum);
-            printf("next bg ine num: %d\n", bg[bgIndex]);
+            // printf("linenum: %d\n", lineNum);
+            // printf("next bg ine num: %d\n", bg[bgIndex]);
             if (bg[bgIndex] == lineNum) { // BACKGROUND
                 printf("is background\n");
                 // bg_running[bg_cnt] = strdup(command);
@@ -120,10 +111,10 @@ void execute(char* command, char** currentDir_ptr, int lineNum) {
                 printf("exited background\n");
             }
             else { // FOREGROUND
-                printf("is foreground for command %s, process ID %d\n", command, getpid());
+                // printf("is foreground for command %s, process ID %d\n", command, getpid());
                 while (wait4(*processID_ptr, childExitStatus_ptr, 0, &usage) <= 0) {
                     wait3Return = wait3(childExitStatus_ptr, WNOHANG, &usage);
-                    printf("wait 3 return %d, process id %d\n", wait3Return, *processID_ptr);
+                    // printf("wait 3 return %d, process id %d\n", wait3Return, *processID_ptr);
                     if (wait3Return > 0) {
                         if (wait3Return == *processID_ptr) {
                             printf("reached if\n");
@@ -152,7 +143,7 @@ void execute(char* command, char** currentDir_ptr, int lineNum) {
 }
 
 int main(int argc, char *argv[]) {
-    char* file_path = "custom.txt";
+    char* file_path = "multi.txt";
     char* line; 
     ssize_t size;
     size_t n = 0;
@@ -183,22 +174,40 @@ int main(int argc, char *argv[]) {
         size = getline(&line,&n,file);
     }
 
-    //testing bg_list
-    printf("initial bg_list\n");
-    printBgList();
-    printf("adding 3 bg tasks\n");
-    addBgProc(0,0,NULL,strdup("cmd1"),0);
-    addBgProc(0,0,NULL,strdup("cmd2"),0);
-    addBgProc(0,0,NULL,strdup("cmd3"),0);
-    printf("printing bg_list with 3 proc_bg\n");
-    printBgList();
-    printf("removing bg_list proc_bgs\n");
-    rmBgProc(0);
-    printBgList();
-    rmBgProc(0);
-    printBgList();
-    rmBgProc(0);
-    printBgList();
+    int* childExitStatus_ptr;
+    struct rusage usage;
+    pid_t wait3Return = wait3(childExitStatus_ptr, WNOHANG, &usage);
+    proc_bg* current = NULL;
+    while (wait3Return >= 0) {
+        // printf("straggling bg processes\n");
+        current = findProc_Bg(wait3Return);
+        if(current!=NULL){
+            printf("found bg proc\n");
+            printStats(current->start_faults[0], current->start_faults[1], usage.ru_majflt, usage.ru_minflt,current->start_time);
+        }
+        // printf("finished printing stats\n");
+        wait3Return = wait3(childExitStatus_ptr, WNOHANG, &usage);
+    }
+
+    // testing bg_list
+    // printf("initial bg_list\n");
+    // printBgList();
+    // printf("adding 3 bg tasks\n");
+    // addBgProc(0,0,NULL,strdup("cmd1"),0);
+    // addBgProc(0,0,NULL,strdup("cmd2"),1);
+    // addBgProc(0,0,NULL,strdup("cmd3"),2);
+    // printf("printing bg_list with 3 proc_bg\n");
+    // printBgList();
+    // printf("finding proc_bg with pid 1\n");
+    // proc_bg* search = findProc_Bg(1);
+    // if(search!=NULL) printf("found proc_bg with pid: %s\n", search->cmd);
+    // printf("removing bg_list proc_bgs\n");
+    // rmBgProc(0);
+    // printBgList();
+    // rmBgProc(2);
+    // printBgList();
+    // rmBgProc(1);
+    // printBgList();
 
 
     return 0;
@@ -310,4 +319,15 @@ void rmBgProc(pid_t pid){
             return;
         }else current = current->next;
     }
+}
+
+proc_bg* findProc_Bg(pid_t pid){
+    if(bg_list==NULL) return NULL;
+    proc_bg* current = bg_list;
+    while(current!=NULL){
+        if(current->pid == pid)return current;
+        else current = current->next;
+    }
+    printf("couldn't find proc_bg");
+    return NULL;
 }
