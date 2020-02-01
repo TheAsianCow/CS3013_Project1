@@ -94,8 +94,11 @@ void execute(char* command, char** currentDir_ptr, int lineNum) {
             // printf("next bg ine num: %d\n", bg[bgIndex]);
             if (bg[bgIndex] == lineNum) { // BACKGROUND
                 
+                proc_bg* current = NULL;
                 // printf("Background parent %s %s\t pid: %d\n", command, myargs[1], *processID_ptr);
                 addBgProc(start.tv_sec, start.tv_usec, cmd_dup, *processID_ptr);
+                current = findProc_Bg_pid(wait3Return);
+                if(current!=NULL)printf("Background: ID [%d]: %s\n",current->queue_num,current->cmd);
                 // printBgList();
                 // proc_bg* new = findProc_Bg_cmd(cmd_dup);
                 // new->start_faults[0] = fg_faults[0];
@@ -109,7 +112,6 @@ void execute(char* command, char** currentDir_ptr, int lineNum) {
                 bgIndex++;
                 // printf("bg index: %d", )
                 // bgIndex_ptr = &newIndex;
-                proc_bg* current = NULL;
                 while (wait3(childExitStatus_ptr, WNOHANG, &usage) > 0) {
                     // printf("about to print stats\n");
                     current = findProc_Bg_pid(wait3Return);
@@ -137,7 +139,11 @@ void execute(char* command, char** currentDir_ptr, int lineNum) {
                         }
                         // printf("about to print stats\n");
                         current = findProc_Bg_pid(wait3Return);
-                        if(current!=NULL)printStats(0,0,usage.ru_majflt,usage.ru_minflt,current->sec,current->usec);
+                        if(current!=NULL){
+                            printf("-- Job Complete [%d: %s] --\n", current->queue_num,current->cmd);
+                            printf("Process ID: %d\n", current->pid);
+                            printStats(0,0,usage.ru_majflt,usage.ru_minflt,current->sec,current->usec);
+                        }
                         // printf("finished printing stats\n");
                     }
                     // printf("stuck in wait4\n");
@@ -147,7 +153,11 @@ void execute(char* command, char** currentDir_ptr, int lineNum) {
                 FG_FINISHED:while ((wait3Return = wait3(childExitStatus_ptr, WNOHANG, &usage)) > 0) {
                     // printf("about to print stats\n");
                     current = findProc_Bg_pid(wait3Return);
-                    if(current!=NULL)printStats(0,0,usage.ru_majflt,usage.ru_minflt,current->sec,current->usec);
+                    if(current!=NULL){
+                        printf("-- Job Complete [%d: %s] --\n", current->queue_num,current->cmd);
+                        printf("Process ID: %d\n", current->pid);
+                        printStats(0,0,usage.ru_majflt,usage.ru_minflt,current->sec,current->usec);
+                    }
                     // printf("finished printing stats\n");
                 }
                 // printf("Foreground parent exit %s %s\t pid: %d\n", command, myargs[1], *processID_ptr);
@@ -195,10 +205,10 @@ int main(int argc, char *argv[]) {
     while(size >=0){
         if(line[size-1]=='\n') line[size-1]='\0';
         line_dup = strdup(line);
-        if (bg[bgIndex] == lineNum) { // BACKGROUND - ADD TO LINKED LIST
-            addBgProc(0, 0, line_dup, -1);
-            // printBgList();
-        }
+        // if (bg[bgIndex] == lineNum) { // BACKGROUND - ADD TO LINKED LIST
+        //     addBgProc(0, 0, line_dup, -1);
+        //     // printBgList();
+        // }
         execute(line, currentDir_ptr, lineNum);
         // printf("lets check the bg_list\n");
         // printBgList();
@@ -218,6 +228,8 @@ int main(int argc, char *argv[]) {
         current = findProc_Bg_pid(wait3Return);
         if(current!=NULL){
             // printf("found bg proc\n");
+            printf("-- Job Complete [%d: %s] --\n", current->queue_num,current->cmd);
+            printf("Process ID: %d\n", current->pid);
             printStats(0, 0, usage.ru_majflt, usage.ru_minflt,current->sec, current->usec);
         }
         // printf("finished printing stats\n");
@@ -289,7 +301,7 @@ void printBgList(){
     proc_bg* current = bg_list;
     if(bg_list!=NULL){
         while(current!=NULL){
-            printf("[%d] %s with PID %d\n", current->queue_num, current->cmd, current->pid);
+            printf("[%d] %s\n", current->queue_num, current->cmd);
             current = current->next;
         }
     }
@@ -380,6 +392,6 @@ proc_bg* findProc_Bg_cmd(char* cmd){
         if(strcmp(current->cmd, cmd)==0)return current;
         else current = current->next;
     }
-    printf("couldn't find proc_bg\n");
+    // printf("couldn't find proc_bg\n");
     return NULL;
 }
