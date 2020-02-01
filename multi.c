@@ -68,6 +68,14 @@ void execute(char* command, char** currentDir_ptr, int lineNum) {
         int rc = fork();
         // *processID_ptr = getpid();
         // printf("fork process ID for command %s: %d\n", command, *processID_ptr);
+
+        getrusage(RUSAGE_SELF,&usage);
+        fg_faults[0] = usage.ru_majflt;
+        fg_faults[1] = usage.ru_minflt;
+        proc_bg* new = findProc_Bg_cmd(cmd_dup);
+        // new->start_faults[0] = fg_faults[0];
+        // new->start_faults[1] = fg_faults[1];
+        // new->start_time = &start;
         if (rc < 0) {
             // fork failed; exit
             fprintf(stderr, "fork failed\n");
@@ -76,21 +84,14 @@ void execute(char* command, char** currentDir_ptr, int lineNum) {
         else if (rc == 0) { // CHILD
             *processID_ptr = getpid();
             printf("child process ID for command %s: %d\n", command, *processID_ptr);
-            getrusage(RUSAGE_SELF,&usage);
-            fg_faults[0] = usage.ru_majflt;
-            fg_faults[1] = usage.ru_minflt;
-            if (bg[bgIndex] == lineNum) { // BACKGROUND - ADD TO LINKED LIST
+            // if (bg[bgIndex] == lineNum) { // BACKGROUND - ADD TO LINKED LIST
                 // addBgProc(fg_faults[0], fg_faults[1], &start, cmd_dup, *processID_ptr);
                 // printBgList();
-                proc_bg* new = findProc_Bg_cmd(cmd_dup);
-                new->start_faults[0] = fg_faults[0];
-                new->start_faults[1] = fg_faults[1];
-                new->start_time = &start;
-                new->pid = *processID_ptr;
+                // printf("ASDJHKLFASDHJKFLASDFKLASDJNKF\n");
 
                 // proc_bg* tmp = findProc_Bg_pid(*processID_ptr);
                 // if(tmp!=NULL)printf("added proc_bg with pid: %d\n", tmp->pid);
-            }
+            // }
             execvp(myargs[0], myargs);
         }
         else { // PARENT
@@ -183,9 +184,9 @@ int main(int argc, char *argv[]) {
     // parsing
     FILE* file = fopen(file_path,"r");
     size = getline(&line,&n,file);
-    line_dup = strdup(line);
     while(size >=0){
         if(line[size-1]=='\n') line[size-1]='\0';
+        line_dup = strdup(line);
         if (bg[bgIndex] == lineNum) { // BACKGROUND - ADD TO LINKED LIST
             addBgProc(0, 0, NULL, line_dup, -1);
             // printBgList();
@@ -196,6 +197,8 @@ int main(int argc, char *argv[]) {
         lineNum++;
         size = getline(&line,&n,file);
     }
+
+    printBgList();
 
     int* childExitStatus_ptr;
     struct rusage usage;
@@ -278,7 +281,7 @@ void printBgList(){
     proc_bg* current = bg_list;
     if(bg_list!=NULL){
         while(current!=NULL){
-            printf("[%d] %s\n", current->queue_num, current->cmd);
+            printf("[%d] %s with PID %d\n", current->queue_num, current->cmd, current->pid);
             current = current->next;
         }
     }
@@ -363,12 +366,14 @@ proc_bg* findProc_Bg_pid(pid_t pid){
     return NULL;
 }
 proc_bg* findProc_Bg_cmd(char* cmd){
+    // printf("looking for cmd in list\n");
     if(bg_list==NULL) return NULL;
     proc_bg* current = bg_list;
     while(current!=NULL){
+        // printf("current node's cmd: %s, desired cmd: %s\n", current->cmd, cmd);
         if(strcmp(current->cmd, cmd)==0)return current;
         else current = current->next;
     }
-    // printf("couldn't find proc_bg");
+    printf("couldn't find proc_bg");
     return NULL;
 }
