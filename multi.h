@@ -11,8 +11,8 @@ int LINE_MAX = 128;
 
 typedef struct proc_bg{
     int done;
-    long int start_faults[2];
-    struct timeval* start_time;
+    time_t sec;
+    suseconds_t usec;
     char* cmd;
     pid_t pid;
     int queue_num;
@@ -22,12 +22,12 @@ typedef struct proc_bg{
 
 int main(int argc, char *argv[]);
 void execute(char* command, char** currentDir_ptr, int lineNum);
-void  parse(char *line, char **argv);
+void parse(char *line, char **argv);
 void changeDir(char** newDir_ptr);
 void printDir(char** currentDir_ptr);
-void printStats(long int start_majflt, long int start_minflt, long int end_majflt, long int end_minflt, struct timeval* start);
+void printStats(long int start_majflt, long int start_minflt, long int end_majflt, long int end_minflt, time_t start_sec, suseconds_t start_usec);
 void printBgList();
-void addBgProc(long int majflt, long int minflt, struct timeval* time, char* cmd, pid_t pid);
+void addBgProc(time_t sec, suseconds_t usec, char* cmd, pid_t pid);
 void rmBgProc(pid_t pid);
 proc_bg* findProc_Bg_pid(pid_t pid);
 proc_bg* findProc_Bg_cmd(char* cmd);
