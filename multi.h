@@ -34,10 +34,10 @@ void changeDir(char** newDir_ptr);
 void printDir(char** currentDir_ptr);
 void printStats(long int start_majflt, long int start_minflt, long int end_majflt, long int end_minflt, struct timeval* start);
 void printBgList();
-void addBGNode(char* command, int queue_num);
-//void addBgProc(long int majflt, long int minflt, struct timeval* time, char* cmd, pid_t pid);
-void remBGNode(char* command);
-// void rmBgProc(pid_t pid);
-// proc_bg* findProc_Bg(pid_t pid);
-// int isInList(pid_t pid);
+=======
+void addBgProc(long int majflt, long int minflt, struct timeval* time, char* cmd, pid_t pid);
+void rmBgProc(pid_t pid);
+proc_bg* findProc_Bg_pid(pid_t pid);
+proc_bg* findProc_Bg_cmd(char* cmd);
+
 #endif
