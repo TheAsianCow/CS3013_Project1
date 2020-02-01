@@ -1,0 +1,59 @@
+total 2.3M
+drwxrwxr-x 4 jerfy jerfy 4.0K Jan 31 23:55 .
+drwxrwxr-x 5 jerfy jerfy 4.0K Jan 19 10:30 ..
+-rwxrwxr-x 1 jerfy jerfy 7.7K Jan 31 23:54 boring
+-rw-rw-r-- 1 jerfy jerfy 2.3K Jan 31 23:52 boring.c
+-rw-rw-r-- 1 jerfy jerfy 2.7K Jan 31 23:54 boring.o
+-rwxrwxr-x 1 jerfy jerfy  12K Jan 31 23:54 custom
+-rw-rw-r-- 1 jerfy jerfy 3.8K Jan 31 23:53 custom.c
+-rw-rw-r-- 1 jerfy jerfy  267 Jan 24 12:20 custom.h
+-rw-rw-r-- 1 jerfy jerfy 845K Jan 31 23:54 custom.h.gch
+-rw-rw-r-- 1 jerfy jerfy 3.6K Jan 31 23:54 custom.o
+-rw-rw-r-- 1 jerfy jerfy 3.5K Jan 31 23:54 custom_output.txt
+-rw-rw-r-- 1 jerfy jerfy   67 Jan 24 12:20 custom.txt
+drwxrwxr-x 8 jerfy jerfy 4.0K Jan 31 23:53 .git
+-rw-rw-r-- 1 jerfy jerfy  312 Jan 31 23:33 Makefile
+-rwxrwxr-x 1 jerfy jerfy  13K Jan 31 23:54 multi
+-rw-rw-r-- 1 jerfy jerfy  16K Jan 31 23:53 multi.c
+-rw-rw-r-- 1 jerfy jerfy  915 Jan 31 22:57 multi.h
+-rw-rw-r-- 1 jerfy jerfy 1.4M Jan 31 23:54 multi.h.gch
+-rw-rw-r-- 1 jerfy jerfy 7.4K Jan 31 23:54 multi.o
+-rw-rw-r-- 1 jerfy jerfy    0 Jan 31 23:55 multi_out.txt
+-rw-rw-r-- 1 jerfy jerfy   39 Jan 31 23:35 multi.txt
+drwxrwxr-x 2 jerfy jerfy 4.0K Jan 21 12:43 .tmp_versions
+Running command: sleep 10
+Running command: ls -alh
+
+-- Statistics --
+Elapsed time: 5 millisecond(s)
+Page Faults: 0
+Page Faults (reclaimed): 22 
+-- End of Statistics --
+
+Running command: sleep 3
+Running command: cproclist
+-- Background Processes --
+[0] sleep 10
+[1] sleep 3
+
+Running command: cpwd
+Current directory: /home/jerfy/Documents/OS/project1
+
+-- Job Complete [1: sleep 3] --
+Process ID: 5283
+
+-- Statistics --
+Elapsed time: 3017 millisecond(s)
+Page Faults: 0
+Page Faults (reclaimed): 67 
+-- End of Statistics --
+
+-- Job Complete [0: sleep 10] --
+Process ID: 5281
+
+-- Statistics --
+Elapsed time: 10004 millisecond(s)
+Page Faults: 0
+Page Faults (reclaimed): 68 
+-- End of Statistics --
+
