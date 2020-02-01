@@ -12,10 +12,8 @@
 // #include <libexplain/gcc_attributes.h>
 
 
-// proc_bg* bg_list = NULL;
-bg_node* headNode = NULL;
+proc_bg* bg_list = NULL;
 int bgIndex = 0;
-// int arr[100];
 int* bg;
 // int* bgIndex_ptr = &bgIndex;
 
@@ -32,8 +30,7 @@ void parse(char* line, char** args){
 }
 
 /*
- * Executes the given line and returns the updated linked list of processes
- * that are running in the background.
+ * int* faults: [majFaults, minFaults]
  */
 void execute(char* command, char** currentDir_ptr, int lineNum) {
     struct rusage usage;
@@ -47,7 +44,7 @@ void execute(char* command, char** currentDir_ptr, int lineNum) {
     int* childExitStatus_ptr = &childExitStatus;
     pid_t wait3Return = 0;
     pid_t wait4Return = 0;
-    pid_t processID = 0;
+    pid_t processID = 0; // child pid
     pid_t* processID_ptr = &processID;
 
 
@@ -77,45 +74,44 @@ void execute(char* command, char** currentDir_ptr, int lineNum) {
             exit(1);
         }
         else if (rc == 0) { // CHILD
-            printf("Child for %s\n", command);
-            // *processID_ptr = getpid();
-            // printf("child process ID for command %s: %d\n", command, *processID_ptr);
+            *processID_ptr = getpid();
+            printf("Child %s %s\t pid: %d\n", command, myargs[1], *processID_ptr);
             getrusage(RUSAGE_SELF,&usage);
             fg_faults[0] = usage.ru_majflt;
             fg_faults[1] = usage.ru_minflt;
-            if (bg[bgIndex] == lineNum) { // BACKGROUND - ADD TO LINKED LIST
-                // addBgProc(fg_faults[0], fg_faults[1], &start, cmd_dup, *processID_ptr);
+            // if (bg[bgIndex] == lineNum) { // BACKGROUND - ADD TO LINKED LIST
+            //     // addBgProc(fg_faults[0], fg_faults[1], &start, cmd_dup, *processID_ptr);
+            //     // printBgList();
+            //     proc_bg* new = findProc_Bg_cmd(cmd_dup);
+            //     new->start_faults[0] = fg_faults[0];
+            //     new->start_faults[1] = fg_faults[1];
+            //     new->start_time = &start;
+            //     new->pid = *processID_ptr;
+
+            //     // proc_bg* tmp = findProc_Bg_pid(*processID_ptr);
+            //     // if(tmp!=NULL)printf("added proc_bg with pid: %d\n", tmp->pid);
+            // }
+            execvp(myargs[0], myargs);
+            printf("Child exit %s %s\t pid: %d\n", command, myargs[1], *processID_ptr);
+        }
+        else { // PARENT
+            *processID_ptr = rc;
+            // printf("linenum: %d\n", lineNum);
+            // printf("next bg ine num: %d\n", bg[bgIndex]);
+            if (bg[bgIndex] == lineNum) { // BACKGROUND
+                
+                printf("Background parent %s %s\t pid: %d\n", command, myargs[1], *processID_ptr);
+                addBgProc(fg_faults[0], fg_faults[1], &start, cmd_dup, *processID_ptr);
                 // printBgList();
-                proc_bg* new = findProc_Bg_cmd(cmd_dup);
-                new->start_faults[0] = fg_faults[0];
-                new->start_faults[1] = fg_faults[1];
-                new->start_time = &start;
-                new->pid = *processID_ptr;
+                // proc_bg* new = findProc_Bg_cmd(cmd_dup);
+                // new->start_faults[0] = fg_faults[0];
+                // new->start_faults[1] = fg_faults[1];
+                // new->start_time = &start;
+                // new->pid = *processID_ptr;
 
                 // proc_bg* tmp = findProc_Bg_pid(*processID_ptr);
                 // if(tmp!=NULL)printf("added proc_bg with pid: %d\n", tmp->pid);
-            }
-            execvp(myargs[0], myargs);
-            printf("Child for %s has exited\n", command);
-        }
-        else { // PARENT
-            // printf("linenum: %d\n", lineNum);
-            // printf("next bg ine num: %d\n", bg[bgIndex]);
-            // *processID_ptr = rc;
-            if (bg[bgIndex] == lineNum) { // BACKGROUND
-                printf("Background parent for %s\n", command);
-                // printf("child pid: %d\n", rc);
-                // if (!isInList(*processID_ptr)) {
-                //     addBgProc(fg_faults[0], fg_faults[1], &start, cmd_dup, *processID_ptr);
-                //     printBgList();
-                //     printf("Background child added to the linked list\n");
-                // }
-                // bg_running[bg_cnt] = strdup(command);
-                // *bgIndex_ptr = *bgIndex_ptr + 1;
-                // while(wait3(childExitStatus_ptr, WNOHANG, usage_ptr)){
-                //     // printf("wait3 returned: %d\n", wait3Return);
-                //     // printf("child exit status ptr: %d\n", *childExitStatus_ptr);
-                // }
+            
                 bgIndex++;
                 // printf("bg index: %d", )
                 // bgIndex_ptr = &newIndex;
@@ -128,18 +124,17 @@ void execute(char* command, char** currentDir_ptr, int lineNum) {
                 // while (wait3(childExitStatus_ptr, WNOHANG, &usage) == 0) {
                 //     printStats(fg_faults[0], fg_faults[1], usage.ru_majflt, usage.ru_minflt,&start);
                 // }
-                printf("Background parent for %s has exited\n", command);
+                printf("Background parent exit %s %s\t pid: %d\n", command, myargs[1], *processID_ptr);
             }
             else { // FOREGROUND
                 // printf("is foreground for command %s, process ID %d\n", command, getpid());
-                printf("Foreground parent for %s\n", command);
-                // printf("child pid: %d\n", rc);
+                printf("Foreground parent %s %s\t pid: %d\n", command, myargs[1], *processID_ptr);
                 while (wait4(*processID_ptr, childExitStatus_ptr, 0, &usage) <= 0) {
                     wait3Return = wait3(childExitStatus_ptr, WNOHANG, &usage);
                     // printf("wait 3 return %d, process id %d\n", wait3Return, *processID_ptr);
                     if (wait3Return > 0) {
                         if (wait3Return == *processID_ptr) {
-                            printf("reached if\n");
+                            // printf("reached if\n");
                             return;
                         }
                         // printf("about to print stats\n");
@@ -155,7 +150,7 @@ void execute(char* command, char** currentDir_ptr, int lineNum) {
                     // printf("finished printing stats\n");
                 }
                 printStats(fg_faults[0], fg_faults[1], usage.ru_majflt, usage.ru_minflt,&start);
-                printf("Foreground parent for %s has exited\n", command);
+                printf("Foreground parent exit %s %s\t pid: %d\n", command, myargs[1], *processID_ptr);
             }
             
             // getrusage(RUSAGE_SELF,&usage);
@@ -187,7 +182,6 @@ int main(int argc, char *argv[]) {
     bg = bgArr;
     // int** bg_ptr = &bg;
     int lineNum = 1;
-    int queue_num = 0;
 
     // get the current working directory
     getcwd(arr, sizeof(arr));
@@ -206,9 +200,8 @@ int main(int argc, char *argv[]) {
             // printBgList();
         }
         execute(line, currentDir_ptr, lineNum);
-        printf("\nprinting linked list in main after execute:\n");
-        printBgList();
-        printf("\n\n");
+        // printf("lets check the bg_list\n");
+        // printBgList();
         lineNum++;
         size = getline(&line,&n,file);
     }
@@ -222,7 +215,7 @@ int main(int argc, char *argv[]) {
         if(wait3Return>0) printf("process with pid %d has finished\n", wait3Return);
         current = findProc_Bg_pid(wait3Return);
         if(current!=NULL){
-            printf("found bg proc\n");
+            // printf("found bg proc\n");
             printStats(current->start_faults[0], current->start_faults[1], usage.ru_majflt, usage.ru_minflt,current->start_time);
         }
         // printf("finished printing stats\n");
@@ -284,7 +277,6 @@ void printStats(long int start_majflt, long int start_minflt, long int end_majfl
 }
 
 void printBgList(){
-
     if(bg_list == NULL){
         printf("bg_list points to NULL\n");
         return;
@@ -292,14 +284,15 @@ void printBgList(){
 
     printf("-- Background Processes --\n");
 
-    bg_node* current = headNode;
-    // proc_bg* current = bg_list;
-    while(current!=NULL){
-        printf("[%d] %s\n", current->queue_num, current->command);
-        current = current->next;
+    proc_bg* current = bg_list;
+    if(bg_list!=NULL){
+        while(current!=NULL){
+            printf("[%d] %s\n", current->queue_num, current->cmd);
+            current = current->next;
+        }
     }
+    printf("\n");
 }
-
 
 void addBgProc(long int majflt, long int minflt, struct timeval* time, char* cmd, pid_t pid){
     if(bg_list==NULL){
@@ -320,7 +313,7 @@ void addBgProc(long int majflt, long int minflt, struct timeval* time, char* cmd
             cnt++;
             current = current->next;
         }
-        printf("current is currently pointing to: %s\n", current->cmd);
+        // printf("current is currently pointing to: %s\n", current->cmd);
         proc_bg* new = (proc_bg*)malloc(sizeof(proc_bg));
         new->start_faults[0] = majflt;
         new->start_faults[1] = minflt;
@@ -330,68 +323,41 @@ void addBgProc(long int majflt, long int minflt, struct timeval* time, char* cmd
         new->queue_num = cnt;
         new->next = NULL;
         new->prev = current;
-        printf("the new proc_bg's cmd: %s\n", new->cmd);
+        // printf("the new proc_bg's cmd: %s\n", new->cmd);
         current->next = new;
-        printf("current->next's cmd: %s\n",current->next->cmd);
+        // printf("current->next's cmd: %s\n",current->next->cmd);
         // return new;
     }
-    bg_node new = {command, queue_num, current, NULL};
-    current->next = &new;
 }
 
-// void addBgProc(long int majflt, long int minflt, struct timeval* time, char* cmd, pid_t pid){
-//     if(bg_list==NULL){
-//         bg_list = (proc_bg*)malloc(sizeof(proc_bg));
-//         bg_list->start_faults[0] = majflt;
-//         bg_list->start_faults[1] = minflt;
-//         bg_list->start_time = time;
-//         bg_list->cmd = cmd;
-//         bg_list->pid = pid;
-//         bg_list->queue_num = 0;
-//         bg_list->next = NULL;
-//         bg_list->prev = NULL;
-//     }else{
-//         proc_bg* current = bg_list;
-//         int cnt = 1;
-//         while(current->next!=NULL){
-//             cnt++;
-//             current = current->next;
-//         }
-//         printf("current is currently pointing to: %s\n", current->cmd);
-//         proc_bg* new = (proc_bg*)malloc(sizeof(proc_bg));
-//         new->start_faults[0] = majflt;
-//         new->start_faults[1] = minflt;
-//         new->start_time = time;
-//         new->cmd = cmd;
-//         new->pid = pid;
-//         new->queue_num = cnt;
-//         new->next = NULL;
-//         new->prev = current;
-//         printf("the new proc_bg's cmd: %s\n", new->cmd);
-//         current->next = new;
-//         printf("current->next's cmd: %s\n",current->next->cmd);
-//     }
-// }
-
-void remBGNode(char* command) {
-    bg_node* current = headNode;
-
-    while (current != NULL) {
-        if (strcmp(current->command, command) == 0) {
-            bg_node* prev = current->prev;
-            bg_node* next = current->next;
-            if (prev == NULL) { // removing the first node
-                headNode = current->next;
-            }
-            else if (next == NULL) { // removing the last node
-                prev->next = NULL;
-            }
-            else {
-                prev->next = next;
-                next->prev = prev;
-            }
-            return;
+void rmBgProc(pid_t pid){
+    if(bg_list==NULL) return;
+    if(bg_list->pid == pid){
+        proc_bg* tmp = bg_list;
+        printf("found matching pid\n");
+        if(bg_list->next!=NULL){
+            printf("head's next: %s\n",bg_list->next->cmd);
+            bg_list->next->prev = NULL;
         }
+        bg_list = bg_list->next;
+        free(tmp);
+        return;
+    }
+    proc_bg* current = bg_list;
+    while(current!=NULL){
+        if(current->pid == pid){
+            printf("found matching pid\n");
+            if(current->prev!=NULL){
+                printf("current's prev: %s\n",current->prev->cmd);
+                current->prev->next = current->next;
+            }
+            if(current->next!=NULL){
+                printf("current's next: %s\n",current->next->cmd);
+                current->next->prev = current->prev;
+            }
+            free(current);
+            return;
+        }else current = current->next;
     }
 }
 
