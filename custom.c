@@ -1,3 +1,7 @@
+// Project 1
+// CS 3013
+// Jeffrey Huang and Jyalu Wu
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -13,7 +17,10 @@ long int faults[2] = {0,0};
 
 
 /*
- * 
+ * Parses the given line and splits it into separate strings
+ * whenever it sees a space.
+ * @param line, the given line
+ * @param args, where it stores the split strings
  */
 void parse(char* line, char** args){
      const char s[2] = " ";
@@ -28,13 +35,17 @@ void parse(char* line, char** args){
 }
 
 /*
- * int* faults: [majFaults, minFaults]
+ * Executes the given command in the given directory. If ccd
+ * or cpwd are called, it processes those commands internally.
+ * @param command, the given command
+ * @param currentDir_ptr, a pointer to the given directory
  */
 void execute(char* command, char** currentDir_ptr){
     struct rusage usage;
     struct timeval start,end;
 
     gettimeofday(&start,NULL);
+    getrusage(RUSAGE_SELF,&usage);
     printf("Running command: %s\n",command);
     char *myargs[34];
     myargs[33] = NULL;
@@ -55,7 +66,6 @@ void execute(char* command, char** currentDir_ptr){
             fprintf(stderr, "fork failed\n");
             exit(1);
         } else if (rc == 0) {
-            getrusage(RUSAGE_SELF,&usage);
             execvp(myargs[0], myargs);
         } else {
             // int wc = wait(NULL);
@@ -73,6 +83,14 @@ void execute(char* command, char** currentDir_ptr){
     }
 }
 
+/*
+ * Parses through "custom.txt" and executes each line in the
+ * text file. If the directory is changed, it remembers which
+ * directory it was changed to and uses that directory in
+ * future child processes.
+ * @param argc, the number of arguments in the command line
+ * @param argv, the arguments in the command line
+ */
 int main(int argc, char *argv[]) {
 	char* file_path = "custom.txt";
     char* line; 
@@ -94,15 +112,15 @@ int main(int argc, char *argv[]) {
         execute(line, currentDir_ptr);
         size = getline(&line,&n,file);
     }
-
     return 0;
 }
 
 
 /*
- * Changes the current directory for this current process
- * as well as for any children processes. Called when
- * "ccd" is parsed.
+ * Changes the current directory to the given directory for
+ * this current process as well as for any children processes.
+ * Called when "ccd" is parsed.
+ * @param newDir_ptr, a pointer to the new directory
  */
 void changeDir(char** newDir_ptr) {
 	if (chdir(*newDir_ptr) != 0) {
@@ -114,6 +132,7 @@ void changeDir(char** newDir_ptr) {
 
 /*
  * Prints out the name of the current working directory.
+ * @param currentDir_ptr, a pointer to the current directory
  */
 void printDir(char** currentDir_ptr) {
 	getcwd(*currentDir_ptr, sizeof(*currentDir_ptr));

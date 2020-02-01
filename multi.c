@@ -1,3 +1,7 @@
+// Project 1
+// CS 3013
+// Jeffrey Huang and Jyalu Wu
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -9,14 +13,17 @@
 #include <getopt.h>
 #include <pthread.h>
 #include "multi.h"
-// #include <libexplain/gcc_attributes.h>
-
 
 proc_bg* bg_list = NULL;
 int bgIndex = 0;
 int* bg;
-// int* bgIndex_ptr = &bgIndex;
 
+/*
+ * Parses the given line and splits it into separate strings
+ * whenever it sees a space.
+ * @param line, the given line
+ * @param args, where it stores the split strings
+ */
 void parse(char* line, char** args){
      const char s[2] = " ";
      char* token = strtok(line, s);
@@ -30,7 +37,15 @@ void parse(char* line, char** args){
 }
 
 /*
- * int* faults: [majFaults, minFaults]
+ * Executes the given command in the given directory. If ccd,
+ * cpwd or cproclist are called, it processes those commands
+ * internally. It also pays attention to which processes should
+ * run in the background (as specified by the user) and has
+ * those processes run in the background while it reads and
+ * executes the next line.
+ * @param command, the given command
+ * @param currentDir_ptr, a pointer to the given directory
+ * @param lineNum, the current line number
  */
 void execute(char* command, char** currentDir_ptr, int lineNum) {
     struct rusage usage;
@@ -172,6 +187,16 @@ void execute(char* command, char** currentDir_ptr, int lineNum) {
     }
 }
 
+/*
+ * Parses through "multi.txt" and executes each line in the
+ * text file. If the directory is changed, it remembers which
+ * directory it was changed to and uses that directory in
+ * future child processes. If a command line is specified by the
+ * user to run in the background, it makes sure that it runs in
+ * the background while other lines are parsed and executed.
+ * @param argc, the number of arguments in the command line
+ * @param argv, the arguments in the command line
+ */
 int main(int argc, char *argv[]) {
     char* file_path = "multi.txt";
     char* line; 
@@ -260,10 +285,12 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
+
 /*
- * Changes the current directory for this current process
- * as well as for any children processes. Called when
- * "ccd" is parsed.
+ * Changes the current directory to the given directory for
+ * this current process as well as for any children processes.
+ * Called when "ccd" is parsed.
+ * @param newDir_ptr, a pointer to the new directory
  */
 void changeDir(char** newDir_ptr) {
     if (chdir(*newDir_ptr) != 0) {
@@ -271,14 +298,20 @@ void changeDir(char** newDir_ptr) {
     }
 }
 
+
 /*
  * Prints out the name of the current working directory.
+ * @param currentDir_ptr, a pointer to the current directory
  */
 void printDir(char** currentDir_ptr) {
     getcwd(*currentDir_ptr, sizeof(*currentDir_ptr));
     printf("Current directory: %s\n\n", *currentDir_ptr);
 }
 
+
+/*
+ * Prints out the statistics of a given child process.
+ */
 void printStats(long int start_majflt, long int start_minflt, long int end_majflt, long int end_minflt, time_t start_sec, suseconds_t start_usec){
     struct timeval end;
     gettimeofday(&end, NULL);
@@ -290,6 +323,11 @@ void printStats(long int start_majflt, long int start_minflt, long int end_majfl
     printf("-- End of Statistics --\n\n");
 }
 
+
+/*
+ * Prints out a list of the processes that are currently running
+ * in the background.
+ */
 void printBgList(){
     if(bg_list == NULL){
         printf("bg_list points to NULL\n");
@@ -308,6 +346,9 @@ void printBgList(){
     printf("\n");
 }
 
+/*
+ * Adds a background process to the linked list.
+ */
 void addBgProc(time_t sec, suseconds_t usec, char* cmd, pid_t pid){
     if(bg_list==NULL){
         bg_list = (proc_bg*)malloc(sizeof(proc_bg));
@@ -342,6 +383,10 @@ void addBgProc(time_t sec, suseconds_t usec, char* cmd, pid_t pid){
     }
 }
 
+
+/*
+ * Removes the given process from the linked list.
+ */
 void rmBgProc(pid_t pid){
     if(bg_list==NULL) return;
     if(bg_list->pid == pid){
@@ -373,6 +418,9 @@ void rmBgProc(pid_t pid){
     }
 }
 
+/*
+Finds the given process in the linked list.
+*/
 proc_bg* findProc_Bg_pid(pid_t pid){
     if(bg_list==NULL) return NULL;
     proc_bg* current = bg_list;
@@ -383,6 +431,10 @@ proc_bg* findProc_Bg_pid(pid_t pid){
     // printf("couldn't find proc_bg");
     return NULL;
 }
+
+/*
+Finds the given process in the linked list.
+*/
 proc_bg* findProc_Bg_cmd(char* cmd){
     // printf("looking for cmd in list\n");
     if(bg_list==NULL) return NULL;
