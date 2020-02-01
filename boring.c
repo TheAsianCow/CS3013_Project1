@@ -1,3 +1,7 @@
+// Project 1
+// CS 3013
+// Jeffrey Huang and Jyalu Wu
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -9,13 +13,22 @@
 long int faults[2] = {0,0};
 
 /*
- * int* faults: [majFaults, minFaults]
+ * Executes the command based on what number is specified
+ * in the arguments. If it is given 0 it executes
+ * "whoami", if it is given 1 it executes "last", and if
+ * it's given 2 it executes "ls -ah /home".
+ * @param command, an int representing the given command
  */
 void execute(int command){
 	struct rusage usage;
 	struct timeval start,end;
 
+    // init statistics
 	gettimeofday(&start,NULL);
+    getrusage(RUSAGE_SELF, &usage);
+    faults[0] = usage.ru_majflt;
+    faults[1] = usage.ru_minflt;
+
 	printf("Running command: ");
 	if(command == 0) printf("whoami\n");
 	else if(command == 1) printf("last\n");
@@ -42,15 +55,10 @@ void execute(int command){
         		myargs[2] = strdup("/home");
         		myargs[3] = NULL;
         		break;
-
         }
-        getrusage(RUSAGE_SELF,&usage);
-        //gettimeofday(&start,NULL);
-        // printf("passing command: %s\n",myargs[0]);
         execvp(myargs[0], myargs);
         printf("this shouldn't print out");
     } else {
-        // int wc = wait(NULL);
         while(wait(NULL)!=rc);
         getrusage(RUSAGE_SELF,&usage);
         gettimeofday(&end, NULL);
@@ -64,13 +72,14 @@ void execute(int command){
     }
 }
 
+
+/*
+ * Executes the following commands and prints out some
+ * statistics corresponding to each child process:
+ *      whoami, last, ls -al /home
+ */
 int main(int argc, char *argv[]){
 	int i;
-	//int faults[2];
-	//faults[0] = 0;
-	//faults[1] = 0;
-	//int *faults_ptr = faults;
-
 	for(i = 0; i < 3; i++) {
 		execute(i);
 	}
